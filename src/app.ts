@@ -22,14 +22,14 @@ app.use(
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
-// app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 
 // Auth routes
 app.use('/auth', authRoutes);
 
 // // Home page
-// app.get('/', (req, res) => {
-//   res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
-// });
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
+});
 
 export default app; 
