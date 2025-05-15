@@ -1,14 +1,14 @@
 import express from 'express';
 import session from 'express-session';
 import passport from './config/passport';
+import path from 'path';
+import cors from 'cors';
+import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import newsRoutes from './routes/news';   
 import pricesRoutes from './routes/prices';
 import portfolioRoutes from './routes/portfolio';
-import path from 'path';
-import cors from 'cors';
-import dotenv from 'dotenv';
-
+import rugcheckRoutes from './routes/rugcheck';
 dotenv.config();
 const app = express();
 
@@ -43,7 +43,10 @@ app.use('/news', newsRoutes);
 // Portfolio routes
 app.use('/portfolio', portfolioRoutes);
 
-// // Home page
+// Rugcheck routes
+app.use('/rugcheck', rugcheckRoutes);
+
+// Home page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
 });
