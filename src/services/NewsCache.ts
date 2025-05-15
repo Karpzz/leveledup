@@ -37,25 +37,62 @@ export class NewsCacheService {
 
   async updateNews() {
     try {
-      const response = await axios.get('https://crypto-news51.p.rapidapi.com/api/v1/crypto/articles', {
-        method: 'GET',
-        params: {
-          page: '1',
-          limit: '10',
-          time_frame: '24h',
-          format: 'json'
-        },
-        headers: {
-          'x-rapidapi-key': process.env.RAPID_API_KEY,
-          'x-rapidapi-host': 'crypto-news51.p.rapidapi.com'
-        }
-      });
+      const sources = [
+        "coindesk",
+        "cointelegraph",
+        "decrypt",
+        "bitcoinmagazine",
+        "cryptobriefing",
+        "cryptoslate",
+        "dailyhodl",
+        "ambcrypto",
+        "cryptopotato",
+        "newsbtc",
+        "zycrypto",
+        "bravenewcoin"
+      ];
+
+      const newsPromises = sources.map(source => 
+        axios.get('https://crypto-news51.p.rapidapi.com/api/v1/crypto/articles', {
+          method: 'GET',
+          params: {
+            page: '1',
+            limit: '100',
+            time_frame: '24h',
+            format: 'json',
+            source: source
+          },
+          headers: {
+            'x-rapidapi-key': process.env.RAPID_API_KEY,
+            'x-rapidapi-host': 'crypto-news51.p.rapidapi.com'
+          }
+        })
+        .then(response => ({
+          source,
+          articles: response.data.filter((news: any) => news && news.summary !== null)
+        }))
+        .catch(error => {
+          console.error(`Error fetching news from ${source}:`, error);
+          return {
+            source,
+            articles: []
+          };
+        })
+      );
+
+      const allNewsResults = await Promise.all(newsPromises);
+      
+      // Convert array to object with sources as keys
+      const newsBySource = allNewsResults.reduce((acc, { source, articles }) => {
+        acc[source] = articles;
+        return acc;
+      }, {} as Record<string, any[]>);
 
       await this.db.collection('cache').updateOne(
         { type: 'news' },
         { 
           $set: {
-            news: response.data,
+            news: newsBySource,
             lastUpdated: new Date()
           }
         },
@@ -71,11 +108,11 @@ export class NewsCacheService {
     setTimeout(() => this.updateNews(), this.updateInterval);
   }
 
-  async getNews(limit: number = 10) {
+  async getNews() {
     const cacheData = await this.db.collection('cache').findOne({ type: 'news' });
     if (!cacheData) {
       return [];
     }
-    return cacheData.news?.slice(0, limit) || [];
+    return cacheData.news
   }
 } 
