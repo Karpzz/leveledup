@@ -9,6 +9,7 @@ import newsRoutes from './routes/news';
 import pricesRoutes from './routes/prices';
 import portfolioRoutes from './routes/portfolio';
 import rugcheckRoutes from './routes/rugcheck';
+import otcRoutes from './routes/otc';
 dotenv.config();
 const app = express();
 
@@ -45,6 +46,9 @@ app.use('/portfolio', portfolioRoutes);
 
 // Rugcheck routes
 app.use('/rugcheck', rugcheckRoutes);
+
+// OTC routes
+app.use('/otc', otcRoutes);
 
 // Home page
 app.get('/', (req, res) => {

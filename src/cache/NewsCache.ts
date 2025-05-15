@@ -15,7 +15,7 @@ export class NewsCacheService {
     const uri = process.env.MONGODB_URI;
     if (!uri) throw new Error('MONGODB_URI is not defined');
     this.client = new MongoClient(uri);
-    this.updateInterval = 5 * 60 * 1000; // 5 minutes
+    this.updateInterval = 60 * 60 * 1000; // 1 hour
     this.connect().then(() => this.updateNews());
   }
 

@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import app from './app';
 import { dbService } from './services/db';
+import { OTCProcessor } from './services/OTC';
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +16,10 @@ async function startServer() {
     // Start the server
     app.listen(PORT, () => {
       console.log(`Server is running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
+      setTimeout(() => {
+        OTCProcessor.getInstance().startProcessing();
+      }, 5000);
+
     });
   } catch (err) {
     console.error('Failed to start server:', err);

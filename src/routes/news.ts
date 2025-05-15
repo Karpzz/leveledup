@@ -1,5 +1,5 @@
 import express from 'express';
-import { NewsCacheService } from '../services/NewsCache';
+import { NewsCacheService } from '../cache/NewsCache'
 
 const router = express.Router();
 const newsCache = new NewsCacheService();

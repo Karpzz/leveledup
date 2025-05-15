@@ -1,5 +1,5 @@
 import express from 'express';
-import { PriceCacheService } from '../services/PriceCache';
+import { PriceCacheService } from '../cache/PriceCache';
 
 const router = express.Router();
 const priceCache = PriceCacheService.getInstance();

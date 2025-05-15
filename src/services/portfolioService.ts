@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { LAMPORTS_PER_SOL, PublicKey, Connection } from '@solana/web3.js';
 import axios from 'axios';
-import { PriceCacheService } from './PriceCache';
+import { PriceCacheService } from '../cache/PriceCache';
 import fs from 'fs';
 import path from 'path';
 
