@@ -4,6 +4,7 @@ import { dbService } from '../services/db';
 import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
+import { authenticate } from '../middleware/auth';
 
 dotenv.config();
 
@@ -28,15 +29,60 @@ router.get(
   }
 );
 
-router.post('/auth/login', async (req: any, res: any) => {
+router.post('/login', async (req: any, res: any) => {
   const { id } = req.body;
   try {
     const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(id) });
     if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url }, process.env.JWT_SECRET || 'secret-key-here');
+    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address }, process.env.JWT_SECRET || 'secret-key-here');
     res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
+  const { wallet_address } = req.body;
+  try {
+    const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Update user with wallet address
+    await dbService.db?.collection('users').updateOne(
+      { _id: new ObjectId(req.user.id) },
+      { $set: { wallet_address } }
+    );
+
+    const updatedUser = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+    
+    const token = jwt.sign(
+      { 
+        id: updatedUser?._id, 
+        username: updatedUser?.username, 
+        name: updatedUser?.name, 
+        profile_image_url: updatedUser?.profile_image_url,
+        wallet_address: updatedUser?.wallet_address,
+        twitter_id: updatedUser?.id
+      }, 
+      process.env.JWT_SECRET || 'secret-key-here'
+    );
+
+    res.json({ 
+      token, 
+      user: { 
+        _id: updatedUser?._id, 
+        username: updatedUser?.username, 
+        name: updatedUser?.name, 
+        profile_image_url: updatedUser?.profile_image_url, 
+        twitter_id: updatedUser?.id, 
+        wallet_address: updatedUser?.wallet_address 
+      } 
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
