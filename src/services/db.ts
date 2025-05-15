@@ -6,7 +6,7 @@ dotenv.config();
 
 class DatabaseService {
   private client: MongoClient;
-  private db: Db | null = null;
+  public db: Db | null = null;
 
   constructor() {
     this.client = new MongoClient(process.env.MONGODB_URI || 'mongodb://localhost:27017');
