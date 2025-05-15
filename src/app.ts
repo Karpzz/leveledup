@@ -4,6 +4,7 @@ import passport from './config/passport';
 import authRoutes from './routes/auth';
 import newsRoutes from './routes/news';   
 import pricesRoutes from './routes/prices';
+import portfolioRoutes from './routes/portfolio';
 import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -38,6 +39,9 @@ app.use('/prices', pricesRoutes);
 
 // News routes
 app.use('/news', newsRoutes);
+
+// Portfolio routes
+app.use('/portfolio', portfolioRoutes);
 
 // // Home page
 app.get('/', (req, res) => {
