@@ -21,7 +21,7 @@ interface AttachmentData {
   size: number;
 }
 
-interface SupportTicket {
+interface Feature {
   user_id: any;
   email: string;
   subject: string;
@@ -65,7 +65,7 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
     }
 
     // Create support ticket object
-    const supportTicket: SupportTicket = {
+    const feature: Feature = {
       user_id: req.user?.id,
       email,
       subject,
@@ -89,14 +89,14 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
       const result = await dbService.db?.collection('files').insertMany(attachments)
       file_ids = result?.insertedIds as any[]
     }
-    supportTicket.attachments = file_ids
+    feature.attachments = file_ids
     // Save to database
-    const result = await dbService.db?.collection('support_tickets').insertOne(supportTicket);
+    const result = await dbService.db?.collection('features').insertOne(feature);
 
     res.status(201).json({
       success: true,
-      message: 'Support ticket created successfully',
-      ticketId: result?.insertedId
+      message: 'Feature created successfully',
+      featureId: result?.insertedId
     });
 
   } catch (error) {
