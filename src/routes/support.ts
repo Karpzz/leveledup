@@ -108,4 +108,21 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
   }
 });
 
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const { id } = req.user as any;
+    const tickets = await dbService.db?.collection('support_tickets').find({ user_id: id }).toArray()
+    res.status(200).json({
+      success: true,
+      tickets
+    });
+  } catch (error) {
+    console.error('Error getting support tickets:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 export default router; 

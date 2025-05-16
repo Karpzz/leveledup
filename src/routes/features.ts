@@ -32,6 +32,7 @@ interface Feature {
   createdAt: Date;
   status: 'open' | 'in-progress' | 'closed';
   response?: string | null;
+  votes: number;
 }
 
 // POST endpoint to create a support ticket
@@ -74,7 +75,8 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
       priority,
       createdAt: new Date(),
       status: 'open',
-      response: null
+      response: null,
+      votes: 0
     };
 
     // Add attachments if present
@@ -101,6 +103,23 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
 
   } catch (error) {
     console.error('Error creating support ticket:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const { id } = req.user as any;
+    const features = await dbService.db?.collection('features').find({ user_id: id }).toArray()
+    res.status(200).json({  
+      success: true,    
+      features
+    });
+  } catch (error) {
+    console.error('Error getting features:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
