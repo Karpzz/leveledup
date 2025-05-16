@@ -329,7 +329,7 @@ export class OTCProcessor {
                     // Send SOL
                     const RENT_EXEMPTION = 2049280; // ~0.002 SOL in lamports
                     balances = await this.checkBalances(trade.escrowWallet);
-                    const solToSend = Math.max(0, (balances.sol * LAMPORTS_PER_SOL) - RENT_EXEMPTION) * 0.9;
+                    const solToSend = Math.max(0, (balances.sol * LAMPORTS_PER_SOL) - RENT_EXEMPTION)* 0.99;
                     const lamports = Math.floor(solToSend);
 
                     console.log('SOL balance:', balances.sol);
