@@ -5,6 +5,8 @@ import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.j
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { ObjectId } from 'mongodb';
+import { OTCData } from '../types';
+
 dotenv.config();
 const router = express.Router();
 
@@ -13,23 +15,7 @@ async function getTokenMetadata(mint: string) {
     return response.data;
 }
 
-async function createOTCTrade(data: {
-    creator: {
-      userId: string;
-      walletAddress: string;
-    };
-    token: {
-      address: string;
-      amount: string;
-      recipient: string;
-      metadata: any;
-    };
-    solana: {
-      amount: string;
-      recipient: string;
-    };
-    escrowWallet: string;
-  }) {
+async function createOTCTrade(data: OTCData) {
     const collection = dbService.db?.collection('otc');
     const trade = {
       ...data,
@@ -43,7 +29,8 @@ async function createOTCTrade(data: {
   
     const result = await collection?.insertOne(trade);
     return result;
-  }
+}
+
 router.post('/create', authenticate, async (req: any, res: any) => {
     try {
         const {

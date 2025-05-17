@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
-
+import { TradeData } from '../types';
 const router = express.Router();
 
 // Configure multer for handling file uploads
@@ -13,18 +13,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   }
 });
-
-interface TradeData {
-  user_id: any;
-  pair: string;
-  type: string;
-  entry: number;
-  exit: number;
-  amount: number;
-  notes: string;
-  status: string;
-  date: string;
-}
 
 // POST endpoint to create a trade journal entry
 router.post('/', authenticate, async (req, res) => {
@@ -48,7 +36,6 @@ router.post('/', authenticate, async (req, res) => {
       exit,
       amount,
       status,
-
       notes,
       date: new Date().toISOString()
     };

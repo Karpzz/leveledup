@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
-
+import { Feature } from '../types';
 const router = express.Router();
 
 // Configure multer for handling file uploads
@@ -13,27 +13,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   }
 });
-
-interface AttachmentData {
-  filename: string;
-  mimetype: string;
-  buffer: Buffer;
-  size: number;
-}
-
-interface Feature {
-  user_id: any;
-  email: string;
-  subject: string;
-  message: string;
-  category: string;
-  priority: 'low' | 'medium' | 'high';
-  attachments?: AttachmentData[];
-  createdAt: Date;
-  status: 'open' | 'in-progress' | 'closed';
-  response?: string | null;
-  votes: number;
-}
 
 // POST endpoint to create a support ticket
 router.post('/', upload.array('attachments'), authenticate, async (req, res) => {

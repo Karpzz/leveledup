@@ -2,29 +2,9 @@ import express from 'express';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
 import { ObjectId } from 'mongodb';
+import { CalculationData } from '../types';
 
 const router = express.Router();
-
-
-interface CalculationData {
-  user_id: any;
-  name: string;
-  type: string;
-  data: {
-    entryPrice: string;
-    stopLoss: string;
-    takeProfit: string;
-    positionSize: string;
-    result: {
-      riskPercent: number;
-      riskAmount: number;
-      gainAmount: number;
-      ratio: number;
-      breakeven: number;
-    };
-  };
-  date: string;
-}
 
 // POST endpoint to create a trade journal entry
 router.post('/', authenticate, async (req, res) => {

@@ -2,7 +2,7 @@ import passport from 'passport';
 import { Strategy } from '@superfaceai/passport-twitter-oauth2';
 import { dbService } from '../services/db';
 import dotenv from 'dotenv';
-
+import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 
 passport.serializeUser((user: any, done: any) => {
@@ -34,6 +34,15 @@ passport.use(
         };
         
         await dbService.upsertUser(userData);
+        await dbService.createNotification({
+          id: uuidv4(),
+          user_id: userData.id,
+          type: 'success',
+          title: 'Welcome to the app',
+          message: 'You have successfully signed up for the app',
+          time: new Date(),
+          read: false
+        });
         return done(null, userData);
       } catch (err) {
         console.error('Error storing user data:', err);

@@ -1,7 +1,7 @@
 import { MongoClient, Db } from 'mongodb';
 import { TwitterUser } from '../types';
 import dotenv from 'dotenv';
-
+import { Notification } from '../types';
 dotenv.config();
 
 class DatabaseService {
@@ -43,7 +43,13 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not connected');
     
     return this.db.collection('users').find<TwitterUser>({}).toArray();
-  }
+  } 
+
+  async createNotification(notification: Notification): Promise<void> {
+    if (!this.db) throw new Error('Database not connected');
+    
+    await this.db.collection('notifications').insertOne(notification);
+  } 
 }
 
 export const dbService = new DatabaseService(); 

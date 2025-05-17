@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
+import { SupportTicket } from '../types';
 
 const router = express.Router();
 
@@ -14,25 +15,6 @@ const upload = multer({
   }
 });
 
-interface AttachmentData {
-  filename: string;
-  mimetype: string;
-  buffer: Buffer;
-  size: number;
-}
-
-interface SupportTicket {
-  user_id: any;
-  email: string;
-  subject: string;
-  message: string;
-  category: string;
-  priority: 'low' | 'medium' | 'high';
-  attachments?: AttachmentData[];
-  createdAt: Date;
-  status: 'open' | 'in-progress' | 'closed';
-  response?: string | null;
-}
 
 // POST endpoint to create a support ticket
 router.post('/', upload.array('attachments'), authenticate, async (req, res) => {
@@ -55,6 +37,7 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
         message: 'Invalid email format'
       });
     }
+    
 
     // Validate priority
     if (!['low', 'medium', 'high'].includes(priority)) {

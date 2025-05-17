@@ -36,8 +36,9 @@ router.post('/login', async (req: any, res: any) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
+    const notifications = await dbService.db?.collection('notifications').find({ user_id: user._id }).toArray();
     const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address }, process.env.JWT_SECRET || 'secret-key-here');
-    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address } });
+    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, notifications: notifications } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
