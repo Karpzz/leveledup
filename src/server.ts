@@ -17,7 +17,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server is running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
       setTimeout(() => {
-        OTCProcessor.getInstance().startProcessing();
+        //OTCProcessor.getInstance().startProcessing();
       }, 5000);
 
     });

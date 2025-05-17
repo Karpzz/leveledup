@@ -37,8 +37,8 @@ export class PriceCacheService {
         try {
             const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
                 params: {
-                    ids: 'bitcoin,ethereum,solana,raydium,bonk,jupiter',
-                    vs_currencies: 'usd',
+                    ids: 'bitcoin,ethereum,solana,raydium,bonk,jupiter,litecoin,monero',
+                    vs_currencies: 'usd,eur,gbp,cad',
                     include_24hr_change: true,
                     include_24hr_vol: true,
                     include_market_cap: true

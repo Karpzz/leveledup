@@ -15,6 +15,10 @@ import featuresRoutes from './routes/features';
 import journalRoutes from './routes/journal';
 import calculatorsRoutes from './routes/calculators';
 import notificationsRoutes from './routes/notifications';
+import filesRoutes from './routes/files';
+import swapRoutes from './routes/swap';
+import twoFactorRouter from './routes/2fa';
+
 dotenv.config();
 const app = express();
 
@@ -69,6 +73,15 @@ app.use('/calculators', calculatorsRoutes);
 
 // Notifications routes
 app.use('/notifications', notificationsRoutes);
+
+// Swap routes
+app.use('/swap', swapRoutes);
+
+// Files routes
+app.use('/files', filesRoutes);
+
+// 2FA routes
+app.use('/2fa', twoFactorRouter);
 
 // Home page
 app.get('/', (req, res) => {

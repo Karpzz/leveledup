@@ -35,6 +35,11 @@ passport.use(
             price_alerts: false,
             transaction_updates: false,
             security_alerts: false
+          },
+          type: 'user',
+          twoFactor: {
+            secret: null,
+            enabled: false
           }
         };
         

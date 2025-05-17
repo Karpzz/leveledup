@@ -97,15 +97,21 @@ export interface OTCData {
   escrowWallet: string;
 }
 
+export interface SupportMessage {
+  from: string;
+  message: string;
+  time: Date;
+  read: boolean;
+  attachments?: string[];
+}
+
 export interface SupportTicket {
   user_id: any;
   email: string;
   subject: string;
-  message: string;
   category: string;
   priority: 'low' | 'medium' | 'high';
-  attachments?: AttachmentData[];
   createdAt: Date;
   status: 'open' | 'in-progress' | 'closed';
-  response?: string | null;
+  messages: SupportMessage[];
 }

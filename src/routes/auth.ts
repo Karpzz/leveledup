@@ -6,6 +6,10 @@ import { ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import { authenticate } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { PublicKey } from '@solana/web3.js';
+import bs58 from 'bs58'
+import nacl from 'tweetnacl';
+import { decodeUTF8 } from 'tweetnacl-util';
 dotenv.config();
 
 const router = express.Router();
@@ -46,8 +50,8 @@ router.post('/login', async (req: any, res: any) => {
       read: false
     });
 
-    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address }, process.env.JWT_SECRET || 'secret-key-here');
-    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, notifications: user.notifications } });
+    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, type: user.type, twoFactor: user.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
+    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, notifications: user.notifications, type: user.type, twoFactor: user.twoFactor.enabled } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -55,19 +59,19 @@ router.post('/login', async (req: any, res: any) => {
 });
 
 router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
-  const { wallet_address } = req.body;
+  const { wallet_address, signature } = req.body;
   try {
     const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+ 
     if (user.wallet_address !== wallet_address) {
       await dbService.createNotification({
         id: uuidv4(),
         user_id: user._id.toString(),
         type: 'warning',
-        title: 'Wallet Change',
+        title: 'Wallet Change Detected',
         message: 'A different wallet has been connected to your account.',
         time: new Date(),
         read: false
@@ -89,7 +93,9 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         name: updatedUser?.name, 
         profile_image_url: updatedUser?.profile_image_url,
         wallet_address: updatedUser?.wallet_address,
-        twitter_id: updatedUser?.id
+        twitter_id: updatedUser?.id,
+        type: updatedUser?.type,
+        twoFactor: updatedUser?.twoFactor.enabled
       }, 
       process.env.JWT_SECRET || 'secret-key-here'
     );
@@ -103,7 +109,9 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         profile_image_url: updatedUser?.profile_image_url, 
         twitter_id: updatedUser?.id, 
         wallet_address: updatedUser?.wallet_address,
-        notifications: updatedUser?.notifications  
+        notifications: updatedUser?.notifications,
+        type: updatedUser?.type,
+        twoFactor: updatedUser?.twoFactor.enabled
       } 
     });
   } catch (error) {
@@ -111,5 +119,22 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+async function verifyMessage({ message, signature, publicKey }: { message: string, signature: string, publicKey: PublicKey }) {
+    try {
+        const messageBytes = decodeUTF8(message);
+        const signatureBytes = bs58.decode(signature);
+        const publicKeyBytes = publicKey.toBytes();
+
+        return nacl.sign.detached.verify(
+            messageBytes,
+            signatureBytes,
+            publicKeyBytes
+        );
+    } catch (error) {
+        console.error('Error verifying message:', error);
+        return false;
+    }
+}
 
 export default router;  

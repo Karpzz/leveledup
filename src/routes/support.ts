@@ -2,7 +2,8 @@ import express from 'express';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
-import { SupportTicket } from '../types';
+import { SupportTicket, SupportMessage, AttachmentData } from '../types';
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
@@ -52,14 +53,19 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
       user_id: req.user?.id,
       email,
       subject,
-      message,
       category,
       priority,
       createdAt: new Date(),
       status: 'open',
-      response: null
+      messages: []
     };
-
+    var firstMessage: SupportMessage = {
+      from: 'user',
+      message: message,
+      time: new Date(),
+      read: false,
+      attachments: []
+    }
     // Add attachments if present
     var file_ids: any[] = []
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
@@ -70,9 +76,12 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
         size: file.size
       }));
       const result = await dbService.db?.collection('files').insertMany(attachments)
-      file_ids = result?.insertedIds as any[]
+      for (const fileId of Object.values(result?.insertedIds as any[])) {
+        file_ids.push(fileId.toString())
+      }
     }
-    supportTicket.attachments = file_ids
+    firstMessage.attachments = file_ids
+    supportTicket.messages.push(firstMessage)
     // Save to database
     const result = await dbService.db?.collection('support_tickets').insertOne(supportTicket);
 
@@ -96,8 +105,8 @@ router.get('/', authenticate, async (req, res) => {
     const { id } = req.user as any;
     const tickets = await dbService.db?.collection('support_tickets').find({ user_id: id }).toArray()
     res.status(200).json({
-      success: true,
-      tickets
+        success: true,
+        tickets
     });
   } catch (error) {
     console.error('Error getting support tickets:', error);
@@ -107,5 +116,83 @@ router.get('/', authenticate, async (req, res) => {
     });
   }
 });
+
+router.post('/:support_ticket_id/reply', upload.array('attachments'), authenticate, async (req, res) => {
+  try {
+    const { support_ticket_id } = req.params;
+    const { message } = req.body;
+    const { id } = req.user as any;
+    const ticket = await dbService.db?.collection('support_tickets').findOne({ _id: new ObjectId(support_ticket_id) });
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+    
+    
+    console.log(req.user?.type)
+    const reply: SupportMessage = {
+      from: req.user?.type,
+      message: message,
+      time: new Date(),
+      read: false,
+      attachments: []
+    }
+    var file_ids: any[] = []
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const attachments = (req.files as Express.Multer.File[]).map(file => ({
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        buffer: file.buffer,
+        size: file.size
+      }));
+      const result = await dbService.db?.collection('files').insertMany(attachments)
+      for (const fileId of Object.values(result?.insertedIds as any[])) {
+        file_ids.push(fileId.toString())
+      }
+    }
+    reply.attachments = file_ids
+
+    await dbService.db?.collection('support_tickets').updateOne({ _id: new ObjectId(support_ticket_id) }, { $push: { messages: reply } });
+    res.status(200).json({ success: true, message: 'Reply added successfully' });
+  } catch (error) {
+    console.error('Error replying to support ticket:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+router.get('/:support_ticket_id', authenticate, async (req, res) => {
+  try {
+    const { support_ticket_id } = req.params;
+    if (support_ticket_id === 'admin') {
+      if (req.user?.type !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+      }
+      const tickets = await dbService.db?.collection('support_tickets').find({}).toArray()
+      if (!tickets) {
+        return res.status(404).json({ success: false, message: 'No tickets found' });
+      }
+      console.log(tickets)
+      const ticketswithusernameandavatars = await Promise.all(tickets.map(async (ticket) => {
+        console.log(ticket.user_id)
+        const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(ticket.user_id) })
+        return { ...ticket, ticket_user_username: user?.username, ticket_user_avatar: user?.avatar }
+      }))
+      return res.status(200).json({ success: true, tickets: ticketswithusernameandavatars });
+    }
+    const { id } = req.user as any;
+    const ticket = await dbService.db?.collection('support_tickets').findOne({ _id: new ObjectId(support_ticket_id) });
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+    if (ticket.user_id !== id && req.user?.type !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    } 
+    res.status(200).json({ success: true, ticket });
+  } catch (error) {
+    console.error('Error getting support ticket:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});   
+
+
 
 export default router; 
