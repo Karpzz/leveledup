@@ -12,6 +12,7 @@ import rugcheckRoutes from './routes/rugcheck';
 import otcRoutes from './routes/otc';
 import supportRoutes from './routes/support';
 import featuresRoutes from './routes/features';
+import journalRoutes from './routes/journal';
 dotenv.config();
 const app = express();
 
@@ -57,6 +58,9 @@ app.use('/support', supportRoutes);
 
 // Features routes
 app.use('/features', featuresRoutes);
+
+// Journal routes
+app.use('/journal', journalRoutes);
 
 // Home page
 app.get('/', (req, res) => {
