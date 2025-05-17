@@ -8,7 +8,6 @@ import authRoutes from './routes/auth';
 import newsRoutes from './routes/news';   
 import pricesRoutes from './routes/prices';
 import portfolioRoutes from './routes/portfolio';
-import rugcheckRoutes from './routes/rugcheck';
 import otcRoutes from './routes/otc';
 import supportRoutes from './routes/support';
 import featuresRoutes from './routes/features';
@@ -41,38 +40,21 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 
+const apiRoutes = express.Router();
+apiRoutes.use('/prices', pricesRoutes);
+apiRoutes.use('/news', newsRoutes);
+apiRoutes.use('/portfolio', portfolioRoutes);
+apiRoutes.use('/otc', otcRoutes);
+apiRoutes.use('/notifications', notificationsRoutes);
+apiRoutes.use('/support', supportRoutes);
+apiRoutes.use('/features', featuresRoutes);
+apiRoutes.use('/calculators', calculatorsRoutes);
+apiRoutes.use('/journal', journalRoutes);
+
+app.use('/api', apiRoutes);
+
 // Auth routes
 app.use('/auth', authRoutes);
-
-// Prices routes
-app.use('/prices', pricesRoutes);
-
-// News routes
-app.use('/news', newsRoutes);
-
-// Portfolio routes
-app.use('/portfolio', portfolioRoutes);
-
-// Rugcheck routes
-app.use('/rugcheck', rugcheckRoutes);
-
-// OTC routes
-app.use('/otc', otcRoutes);
-
-// Support routes
-app.use('/support', supportRoutes);
-
-// Features routes
-app.use('/features', featuresRoutes);
-
-// Journal routes
-app.use('/journal', journalRoutes);
-
-// Calculators routes
-app.use('/calculators', calculatorsRoutes);
-
-// Notifications routes
-app.use('/notifications', notificationsRoutes);
 
 // Swap routes
 app.use('/swap', swapRoutes);
@@ -84,7 +66,7 @@ app.use('/files', filesRoutes);
 app.use('/2fa', twoFactorRouter);
 
 // Home page
-app.get('/', (req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
 });
 

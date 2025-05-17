@@ -68,7 +68,11 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
         size: file.size
       }));
       const result = await dbService.db?.collection('files').insertMany(attachments)
-      file_ids = result?.insertedIds as any[]
+      if (result?.insertedIds) {
+        for (const file of Object.values(result.insertedIds)) {
+          file_ids.push(file.toString())
+        }
+      }
     }
     feature.attachments = file_ids
     // Save to database
