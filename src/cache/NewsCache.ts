@@ -16,7 +16,10 @@ export class NewsCacheService {
     if (!uri) throw new Error('MONGODB_URI is not defined');
     this.client = new MongoClient(uri);
     this.updateInterval = 60 * 60 * 1000; // 1 hour
-    this.connect().then(() => this.updateNews());
+    this.connect().then(() => {
+      this.updateWhaleTransactions();
+      this.updateNews();
+    });
   }
 
   static getInstance(): NewsCacheService {
@@ -35,6 +38,27 @@ export class NewsCacheService {
     }
   }
 
+  async updateWhaleTransactions() {
+    axios.get('https://crypto-news51.p.rapidapi.com/api/v1/crypto/transactions', {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-key': process.env.RAPID_API_KEY,
+        'x-rapidapi-host': 'crypto-news51.p.rapidapi.com'
+      }
+    })
+    .then(async response => {
+      await this.db.collection('cache').updateOne(
+        { type: 'whale-transactions' },
+        { $set: { transactions: response.data } },
+        { upsert: true }
+      );
+      console.log('Whale transactions updated in cache');
+    })
+    .catch(error => {
+      console.error('Error fetching whale transactions:', error);
+    });
+    setTimeout(() => this.updateWhaleTransactions(), this.updateInterval);
+  }
   async updateNews() {
     try {
       const sources = [
