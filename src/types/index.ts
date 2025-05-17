@@ -18,7 +18,7 @@ declare global {
 export interface Notification {
   id: string;
   user_id: string;
-  type: string;
+  type: 'success' | 'warning' | 'error' | 'info';
   title: string;
   message: string;
   time: Date;

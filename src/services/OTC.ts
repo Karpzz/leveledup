@@ -7,7 +7,7 @@ import axios from 'axios';
 dotenv.config();
 import { getOrCreateAssociatedTokenAccount, createTransferInstruction, getMint } from '@solana/spl-token';
 import { getTokenMetadata } from '../utils/tokenMetadata';
-
+import { v4 as uuidv4 } from 'uuid';
 export class OTCProcessor {
     private static instance: OTCProcessor;
     private intervalId: NodeJS.Timeout | null = null;
@@ -329,7 +329,7 @@ export class OTCProcessor {
                     // Send SOL
                     const RENT_EXEMPTION = 2049280; // ~0.002 SOL in lamports
                     balances = await this.checkBalances(trade.escrowWallet);
-                    const solToSend = Math.max(0, (balances.sol * LAMPORTS_PER_SOL) - RENT_EXEMPTION)* 0.99;
+                    const solToSend = Math.max(0, (balances.sol * LAMPORTS_PER_SOL) - RENT_EXEMPTION);
                     const lamports = Math.floor(solToSend);
 
                     console.log('SOL balance:', balances.sol);
@@ -360,6 +360,15 @@ export class OTCProcessor {
                         }
                     });
                     console.log('✅ Trade completed successfully');
+                    await this.db.collection('notifications').insertOne({
+                        id: uuidv4(),
+                        user_id: trade.creator.userId,
+                        type: 'success',
+                        title: 'OTC Trade Completed',
+                        message: 'Your OTC trade has been completed.',
+                        time: new Date(),
+                        read: false
+                    });
                 }
             }
         } catch (error) {

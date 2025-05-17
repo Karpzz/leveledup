@@ -30,7 +30,12 @@ passport.use(
           profile_image_url: profile._json.profile_image_url,
           accessToken,
           refreshToken,
-          created_at: new Date()
+          created_at: new Date(),
+          notifications: {
+            price_alerts: false,
+            transaction_updates: false,
+            security_alerts: false
+          }
         };
         
         await dbService.upsertUser(userData);

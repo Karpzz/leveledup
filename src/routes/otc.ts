@@ -6,7 +6,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import { ObjectId } from 'mongodb';
 import { OTCData } from '../types';
-
+import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 const router = express.Router();
 
@@ -22,12 +22,21 @@ async function createOTCTrade(data: OTCData) {
       status: 'awaiting_token',
       status_message: "Waiting for tokens...",
       createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 5 minutes from now
+      expiresAt: new Date(Date.now() + 1440 * 7 * 60 * 1000), // 7 days from now
       tokenReceived: false,
       solReceived: false
     };
   
     const result = await collection?.insertOne(trade);
+    await dbService.createNotification({
+        id: uuidv4(),
+        user_id: data.creator.userId,
+        type: 'success',
+        title: 'OTC Trade Created',
+        message: 'A new OTC trade has been created.',
+        time: new Date(),
+        read: false
+    });
     return result;
 }
 
@@ -125,7 +134,7 @@ router.get('/', authenticate, async (req: any, res: any) => {
     });
     res.json({
         success: true,
-        trades: filteredTrades
+        trades: filteredTrades.reverse()
     });
 });
 router.get('/trades/:tradeId', authenticate, async (req: any, res: any) => {

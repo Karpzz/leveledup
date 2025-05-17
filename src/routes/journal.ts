@@ -1,18 +1,9 @@
 import express from 'express';
-import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
 import { TradeData } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 const router = express.Router();
-
-// Configure multer for handling file uploads
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  }
-});
 
 // POST endpoint to create a trade journal entry
 router.post('/', authenticate, async (req, res) => {
@@ -41,8 +32,16 @@ router.post('/', authenticate, async (req, res) => {
     };
 
     // Save to database
-    const result = await dbService.db?.collection('journal').insertOne(trade);
-
+    await dbService.db?.collection('journal').insertOne(trade);
+    await dbService.createNotification({
+      id: uuidv4(),
+      user_id: req.user?.id as string,
+      type: 'success',
+      title: 'Trade Entry Created',
+      message: 'A new trade entry has been created.',
+      time: new Date(),
+      read: false
+    });
     res.status(201).json({
       success: true,
       message: 'Trade entry created successfully',

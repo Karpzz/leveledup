@@ -14,6 +14,7 @@ import supportRoutes from './routes/support';
 import featuresRoutes from './routes/features';
 import journalRoutes from './routes/journal';
 import calculatorsRoutes from './routes/calculators';
+import notificationsRoutes from './routes/notifications';
 dotenv.config();
 const app = express();
 
@@ -65,6 +66,9 @@ app.use('/journal', journalRoutes);
 
 // Calculators routes
 app.use('/calculators', calculatorsRoutes);
+
+// Notifications routes
+app.use('/notifications', notificationsRoutes);
 
 // Home page
 app.get('/', (req, res) => {

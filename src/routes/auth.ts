@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import { authenticate } from '../middleware/auth';
-
+import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 
 const router = express.Router();
@@ -36,9 +36,18 @@ router.post('/login', async (req: any, res: any) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-    const notifications = await dbService.db?.collection('notifications').find({ user_id: user._id }).toArray();
+    await dbService.createNotification({
+      id: uuidv4(), 
+      user_id: user._id.toString(),
+      type: 'warning',
+      title: 'Login Detected',
+      message: 'A user has logged into your account.',
+      time: new Date(),
+      read: false
+    });
+
     const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address }, process.env.JWT_SECRET || 'secret-key-here');
-    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, notifications: notifications } });
+    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, notifications: user.notifications } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -51,6 +60,18 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
     const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (user.wallet_address !== wallet_address) {
+      await dbService.createNotification({
+        id: uuidv4(),
+        user_id: user._id.toString(),
+        type: 'warning',
+        title: 'Wallet Change',
+        message: 'A different wallet has been connected to your account.',
+        time: new Date(),
+        read: false
+      });
     }
     
     // Update user with wallet address
@@ -81,7 +102,8 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         name: updatedUser?.name, 
         profile_image_url: updatedUser?.profile_image_url, 
         twitter_id: updatedUser?.id, 
-        wallet_address: updatedUser?.wallet_address 
+        wallet_address: updatedUser?.wallet_address,
+        notifications: updatedUser?.notifications  
       } 
     });
   } catch (error) {
