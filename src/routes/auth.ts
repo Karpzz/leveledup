@@ -9,48 +9,71 @@ import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58'
 import nacl from 'tweetnacl';
 import { decodeUTF8 } from 'tweetnacl-util';
+import bcrypt from 'bcrypt';
 dotenv.config();
 
 const router = express.Router();
 
+const SALT_ROUNDS = 10;
+
 router.post('/register', async (req: any, res: any) => {
   const { username, password, email } = req.body;
-  const user = await dbService.db?.collection('users').findOne({ username: username });
-  if (user) {
-    return res.status(400).json({ message: 'Username already exists' });
+  
+  try {
+    const user = await dbService.db?.collection('users').findOne({ username: username });
+    if (user) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    await dbService.db?.collection('users').insertOne({
+      username: username,
+      password: hashedPassword,
+      email: email,
+      wallet_address: null,
+      profile_image_url: '682a42b348d504eb68828fbb',
+      name: '$UP User',
+      bio: 'Bio here',
+      created_at: new Date(),
+      notifications: { 
+        price_alerts: false,
+        transaction_updates: false,
+        security_alerts: false
+      }, 
+      type: 'user',
+      twoFactor: { 
+        secret: null, 
+        enabled: false
+      } 
+    });
+
+    const newUser = await dbService.db?.collection('users').findOne({ username: username });
+    const token = jwt.sign({ id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
+    res.json({ token, user: { _id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, notifications: newUser?.notifications, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled } });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  await dbService.db?.collection('users').insertOne({
-    username: username,
-    password: password, // encrypt this
-    email: email,
-    wallet_address: null,
-    profile_image_url: '682a42b348d504eb68828fbb',
-    name: '$UP User',
-    bio: 'Bio here',
-    created_at: new Date(),
-    notifications: { 
-      price_alerts: false,
-      transaction_updates: false,
-      security_alerts: false
-    }, 
-    type: 'user',
-    twoFactor: { 
-      secret: null, 
-      enabled: false
-    } 
-  });
-  const newUser = await dbService.db?.collection('users').findOne({ username: username });
-  const token = jwt.sign({ id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
-  res.json({ token, user: { _id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, notifications: newUser?.notifications, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled } });
 });
 
 router.post('/login', async (req: any, res: any) => {
   const { username, password } = req.body;
   try {
-    const user = await dbService.db?.collection('users').findOne({ username: username, password: password });
+    const user = await dbService.db?.collection('users').findOne({ username: username });
+    
     if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+
     await dbService.createNotification({
       id: uuidv4(), 
       user_id: user._id.toString(),
