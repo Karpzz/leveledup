@@ -31,6 +31,7 @@ router.post('/avatar', authenticate, upload.single('avatar'), async (req, res) =
     }
     const file = req.file;
     if (!file) {
+        console.log('No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
     }
     const file_id = await dbService.db?.collection('files').insertOne({
