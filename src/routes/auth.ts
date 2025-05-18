@@ -25,8 +25,8 @@ router.post('/register', async (req: any, res: any) => {
     email: email,
     wallet_address: null,
     profile_image_url: '682a42b348d504eb68828fbb',
-    name: 'Leveled Up User',
-    bio: 'Leveled Up User',
+    name: '$UP User',
+    bio: 'Bio here',
     created_at: new Date(),
     notifications: { 
       price_alerts: false,
