@@ -17,7 +17,7 @@ import notificationsRoutes from './routes/notifications';
 import filesRoutes from './routes/files';
 import swapRoutes from './routes/swap';
 import twoFactorRouter from './routes/2fa';
-
+import trackerRoutes from './routes/tracker';
 dotenv.config();
 const app = express();
 
@@ -50,6 +50,7 @@ apiRoutes.use('/support', supportRoutes);
 apiRoutes.use('/features', featuresRoutes);
 apiRoutes.use('/calculators', calculatorsRoutes);
 apiRoutes.use('/journal', journalRoutes);
+apiRoutes.use('/tracker', trackerRoutes);
 
 app.use('/api', apiRoutes);
 

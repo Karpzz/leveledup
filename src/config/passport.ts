@@ -19,7 +19,8 @@ passport.use(
       clientID: process.env.TWITTER_CLIENT_ID!,
       clientSecret: process.env.TWITTER_CLIENT_SECRET!,
       clientType: 'confidential',
-      callbackURL: `${process.env.BASE_URL}/auth/twitter/callback`,
+      callbackURL: `${process.env.APP_URL}/auth/twitter/callback`,
+      scope: ['tweet.read', 'users.read', 'offline.access'],
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {

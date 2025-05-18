@@ -6,7 +6,7 @@ import { OTCProcessor } from './services/OTC';
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3910;
 
 async function startServer() {
   try {
@@ -17,7 +17,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server is running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
       setTimeout(() => {
-        //OTCProcessor.getInstance().startProcessing();
+        OTCProcessor.getInstance().startProcessing();
       }, 5000);
 
     });

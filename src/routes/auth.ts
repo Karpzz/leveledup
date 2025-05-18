@@ -22,14 +22,55 @@ router.get('/twitter', (req, res, next) => {
 
 router.get(
   '/twitter/callback',
-  passport.authenticate('twitter'),
-  async function (req: any, res: any) {
-    const userMongo = await dbService.getUser(req.user.id);
-    // add userData to the redirect url as a base64 string
-    const redirectUrl = '/' as string;
-    const base64UserData = Buffer.from(JSON.stringify({ _id: userMongo?._id, name: userMongo?.name, username: userMongo?.username, profile_image_url: userMongo?.profile_image_url, twitter_id: userMongo?.id })).toString('base64');
-    const redirectUrlWithUserData = `${redirectUrl}?user=${base64UserData}`;
-    res.redirect(redirectUrlWithUserData);
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    passport.authenticate('twitter', { session: false }, (err: any, user: any, info: { message: string }) => {
+      // Log all information for debugging
+      console.log('Twitter callback debug info:', {
+        error: err,
+        user: user,
+        info: info,
+        session: req.session,
+        query: req.query
+      });
+
+      if (err) {
+        console.error('Twitter authentication error:', err);
+        return res.redirect(`/login?error=${encodeURIComponent(err.message || 'Authentication failed')}`);
+      }
+
+      if (!user) {
+        console.error('Twitter authentication failed:', info);
+        return res.redirect('/login?error=Authentication failed - no user data');
+      }
+
+      req.logIn(user, async (loginErr) => {
+        if (loginErr) {
+          console.error('Login error:', loginErr);
+          return res.redirect(`/login?error=${encodeURIComponent(loginErr.message)}`);
+        }
+
+        try {
+          const userMongo = await dbService.getUser(user.id);
+          if (!userMongo) {
+            console.error('User not found in database:', user.id);
+            return res.redirect('/login?error=User not found in database');
+          }
+
+          const base64UserData = Buffer.from(JSON.stringify({ 
+            _id: userMongo._id, 
+            name: userMongo.name, 
+            username: userMongo.username, 
+            profile_image_url: userMongo.profile_image_url, 
+            twitter_id: userMongo.id 
+          })).toString('base64');
+
+          res.redirect(`/?user=${base64UserData}`);
+        } catch (error) {
+          console.error('Database error:', error);
+          res.redirect('/login?error=Database error occurred');
+        }
+      });
+    })(req, res, next);
   }
 );
 

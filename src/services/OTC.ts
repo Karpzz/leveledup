@@ -105,7 +105,6 @@ export class OTCProcessor {
     }
 
     async processOTCTrades() {
-        console.log('\n🔄 Starting OTC trade processing...');
 
         try {
             const trades = await this.db.collection('otc').find({
