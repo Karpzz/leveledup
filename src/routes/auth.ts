@@ -1,5 +1,4 @@
 import express from 'express';
-import passport from '../config/passport';
 import { dbService } from '../services/db';
 import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
@@ -14,70 +13,41 @@ dotenv.config();
 
 const router = express.Router();
 
-router.get('/twitter', (req, res, next) => {
-  passport.authenticate('twitter', {
-    scope: ['tweet.read', 'users.read', 'offline.access'],
-  })(req, res, next);
+router.post('/register', async (req: any, res: any) => {
+  const { username, password, email } = req.body;
+  const user = await dbService.db?.collection('users').findOne({ username: username });
+  if (user) {
+    return res.status(400).json({ message: 'Username already exists' });
+  }
+  await dbService.db?.collection('users').insertOne({
+    username: username,
+    password: password, // encrypt this
+    email: email,
+    wallet_address: null,
+    profile_image_url: '682a42b348d504eb68828fbb',
+    name: 'Leveled Up User',
+    bio: 'Leveled Up User',
+    created_at: new Date(),
+    notifications: { 
+      price_alerts: false,
+      transaction_updates: false,
+      security_alerts: false
+    }, 
+    type: 'user',
+    twoFactor: { 
+      secret: null, 
+      enabled: false
+    } 
+  });
+  const newUser = await dbService.db?.collection('users').findOne({ username: username });
+  const token = jwt.sign({ id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
+  res.json({ token, user: { _id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, notifications: newUser?.notifications, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled } });
 });
 
-router.get(
-  '/twitter/callback',
-  (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    passport.authenticate('twitter', { session: false }, (err: any, user: any, info: { message: string }) => {
-      // Log all information for debugging
-      console.log('Twitter callback debug info:', {
-        error: err,
-        user: user,
-        info: info,
-        session: req.session,
-        query: req.query
-      });
-
-      if (err) {
-        console.error('Twitter authentication error:', err);
-        return res.redirect(`/login?error=${encodeURIComponent(err.message || 'Authentication failed')}`);
-      }
-
-      if (!user) {
-        console.error('Twitter authentication failed:', info);
-        return res.redirect('/login?error=Authentication failed - no user data');
-      }
-
-      req.logIn(user, async (loginErr) => {
-        if (loginErr) {
-          console.error('Login error:', loginErr);
-          return res.redirect(`/login?error=${encodeURIComponent(loginErr.message)}`);
-        }
-
-        try {
-          const userMongo = await dbService.getUser(user.id);
-          if (!userMongo) {
-            console.error('User not found in database:', user.id);
-            return res.redirect('/login?error=User not found in database');
-          }
-
-          const base64UserData = Buffer.from(JSON.stringify({ 
-            _id: userMongo._id, 
-            name: userMongo.name, 
-            username: userMongo.username, 
-            profile_image_url: userMongo.profile_image_url, 
-            twitter_id: userMongo.id 
-          })).toString('base64');
-
-          res.redirect(`/?user=${base64UserData}`);
-        } catch (error) {
-          console.error('Database error:', error);
-          res.redirect('/login?error=Database error occurred');
-        }
-      });
-    })(req, res, next);
-  }
-);
-
 router.post('/login', async (req: any, res: any) => {
-  const { id } = req.body;
+  const { username, password } = req.body;
   try {
-    const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(id) });
+    const user = await dbService.db?.collection('users').findOne({ username: username, password: password });
     if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
@@ -91,8 +61,8 @@ router.post('/login', async (req: any, res: any) => {
       read: false
     });
 
-    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, type: user.type, twoFactor: user.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
-    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, twitter_id: user.id , wallet_address: user.wallet_address, notifications: user.notifications, type: user.type, twoFactor: user.twoFactor.enabled } });
+    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, type: user.type, twoFactor: user.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
+    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, notifications: user.notifications, type: user.type, twoFactor: user.twoFactor.enabled } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });

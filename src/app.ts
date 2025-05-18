@@ -1,6 +1,5 @@
 import express from 'express';
 import session from 'express-session';
-import passport from './config/passport';
 import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -21,23 +20,23 @@ import trackerRoutes from './routes/tracker';
 dotenv.config();
 const app = express();
 
+// Configure CORS
+app.use(cors());
+
+app.use(express.json());
 // Session middleware
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    secret: process.env.SESSION_SECRET || 'super-secret-key',
     resave: false,
     saveUninitialized: true,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+      httpOnly: true,
+      maxAge: 1000 * 60 * 10, // 10 minutes
+    },
   })
 );
-app.use(cors());
-app.use(express.json());
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
 app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 
 const apiRoutes = express.Router();
