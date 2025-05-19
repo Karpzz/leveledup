@@ -74,7 +74,8 @@ export class TwitterCache {
     this.rapidApiHost = 'twitter154.p.rapidapi.com';
     this.client.connect().then(() => {
       this.db = this.client.db('leveledup')
-      console.log('Connected to MongoDB')
+      console.log('Twitter Cache Connected to MongoDB')
+      this.run()
     })
   }
 
@@ -116,7 +117,7 @@ export class TwitterCache {
     // Check cache first
     // Fetch from API if not in cache
     const response = await fetch(
-      `https://twitter154.p.rapidapi.com/user/tweets?limit=${limit}&user_id=${userId}`,
+      `https://twitter154.p.rapidapi.com/user/tweets?limit=${limit}&user_id=${userId}&include_pinned=true`,
       {
         headers: this.getHeaders()
       }
@@ -163,7 +164,7 @@ export class TwitterCache {
       }
       
     }
-
+    console.log(`Updated ${updatedUser.username} tweets to ${updatedUser.tweets.length}`)
     await this.db.collection('twitter-tracker').updateOne({ user_id: userId }, { $set: { tweets: updatedUser.tweets } })
   }
 
@@ -184,6 +185,11 @@ export class TwitterCache {
   }
 
   async run() {
+    const users = await this.db.collection('twitter-tracker').find({}).toArray()
+    console.log(`Updating ${users.length} users`)
+    for (const user of users) {
+        await this.updateUser(user.user_id)
+    }
     setInterval(async () => {
       const users = await this.db.collection('twitter-tracker').find({}).toArray()
       for (const user of users) {

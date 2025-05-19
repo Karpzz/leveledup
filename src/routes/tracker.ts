@@ -8,11 +8,6 @@ const router = Router();
 
 // Initialize TwitterCache with environment variables
 const twitterCache = new TwitterCache();
-
-async () => {
-    await twitterCache.run();
-}
-
 var idlist =['1805761824140218368', '1923865234558812160']
 
 router.get('/twitter', authenticate, async (req, res) => {
