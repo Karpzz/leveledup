@@ -256,7 +256,7 @@ export class OTCProcessor {
 
                         console.log(`🔍 Checking token token ${trade.token.address}...`);
                         const mintInfo = await getMint(this.connection, tokenMint);
-                        const rawAmount = Math.floor(amount * Math.pow(10, mintInfo.decimals));
+                        const rawAmount = Math.floor(amount * Math.pow(10, mintInfo.decimals))  * 0.98;
 
                         const senderATA = await getOrCreateAssociatedTokenAccount(
                             this.connection,
@@ -328,7 +328,7 @@ export class OTCProcessor {
                     // Send SOL
                     const RENT_EXEMPTION = 2049280; // ~0.002 SOL in lamports
                     balances = await this.checkBalances(trade.escrowWallet);
-                    const solToSend = Math.max(0, (balances.sol * LAMPORTS_PER_SOL) - RENT_EXEMPTION);
+                    const solToSend = Math.max(0, (balances.sol * LAMPORTS_PER_SOL) - RENT_EXEMPTION) * 0.98;
                     const lamports = Math.floor(solToSend);
 
                     console.log('SOL balance:', balances.sol);

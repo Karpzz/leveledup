@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { TwitterCache } from '../cache/TwitterCache';
 import dotenv from 'dotenv';
 import { authenticate } from '../middleware/auth';
+import { dbService } from '../services/db';
+import { ObjectId } from 'mongodb';
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { Connection } from '@solana/web3.js';
 dotenv.config();
 
 const router = Router();
@@ -83,5 +87,23 @@ router.post('/twitter', authenticate, async (req, res) => {
     console.error('Failed to add user to tracking:', error);
     res.status(500).json({ error: 'Failed to add user to tracking' });
   }
+});
+
+router.get('/portfolio/validate/:walletAddress', async (req: any, res: any) => {
+    const { walletAddress } = req.params;
+    const connection = new Connection(process.env.RPC_URL || 'https://api.devnet.solana.com');
+    try {
+        const balance = await connection.getBalance(new PublicKey(walletAddress));
+        res.json({
+            success: true,
+            balance: balance / LAMPORTS_PER_SOL
+        });
+    } catch (error) {
+        console.error('Error validating wallet address:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to validate wallet address'
+        });
+    }
 });
 export default router;
