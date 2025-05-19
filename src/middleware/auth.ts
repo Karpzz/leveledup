@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { dbService } from '../services/db';
+import { ObjectId } from 'mongodb';
 
 dotenv.config();
 
@@ -29,10 +31,22 @@ export const authenticate = async (
     const token = parts[1];
 
     // Verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-key-here');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-key-here') as any;
     
+    // Check if user exists in database
+    const user = await dbService.db?.collection('users').findOne({ 
+      _id: new ObjectId(decoded.id)
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
     // Attach the decoded user to the request object
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      type: user.type // Ensure we have the latest user type from DB
+    };
     
     next();
   } catch (error) {

@@ -1,7 +1,7 @@
 {
-  "name": "twitter-oauth-redirect",
+  "name": "leveledup",
   "version": "1.0.0",
-  "description": "Twitter OAuth2 authentication with website redirects",
+  "description": "Leveled Up",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",

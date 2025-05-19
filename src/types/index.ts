@@ -63,7 +63,10 @@ export interface Feature {
   createdAt: Date;
   status: 'open' | 'in-progress' | 'closed';
   response?: string | null;
-  votes: number;
+  votes: {
+    up: number;
+    down: number;
+  };
 }
 
 export interface TradeData {

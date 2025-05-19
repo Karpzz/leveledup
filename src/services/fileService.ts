@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { Db, MongoClient, ObjectId } from 'mongodb';
 import sharp from 'sharp';
 
@@ -18,57 +17,10 @@ export class FileController {
         });
     }
 
-   
-    handleFileUpload = async (req: Request, res: Response) => {
-        try {
-            const { file } = req;
-            if (!file) {
-                return res.status(400).json({ error: 'No file uploaded' });
-            }   
-
-            console.log('Uploading file:', {
-                originalName: file.originalname,
-                mimeType: file.mimetype,
-                size: file.size,
-                bufferType: file.buffer ? file.buffer.constructor.name : 'none'
-            });
-
-            // Ensure we have a valid buffer
-            if (!file.buffer || !Buffer.isBuffer(file.buffer)) {
-                return res.status(400).json({ error: 'Invalid file buffer' });
-            }
-
-            const file_id = uuidv4();
-            const new_file = {
-                file_id: file_id,
-                name: file.originalname,
-                type: file.mimetype,
-                size: file.size,
-                buffer: file.buffer,  // MongoDB will automatically convert this to its Binary type
-                createdAt: new Date()
-            }
-
-            await this.db.collection(this.collection).insertOne(new_file);
-            console.log('File saved successfully with ID:', file_id);
-
-            res.status(200).json({
-                status: 'success',
-                file_id: file_id,
-                name: file.originalname,
-                type: file.mimetype,
-                size: file.size
-            });
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            res.status(500).json({ error: 'Error uploading file' });
-        }
-    }
-
     serveFile = async (req: Request, res: Response) => {
         try {
             const { file_id } = req.params;
             const { size } = req.query;
-            console.log('Serving file with ID:', file_id);
             
             const file = await this.db.collection(this.collection).findOne({ _id: new ObjectId(file_id) });
             console.log('File metadata:', {

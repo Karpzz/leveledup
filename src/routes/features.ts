@@ -55,7 +55,10 @@ router.post('/', upload.array('attachments'), authenticate, async (req, res) => 
       createdAt: new Date(),
       status: 'open',
       response: null,
-      votes: 0
+      votes: {
+        up: 0,
+        down: 0
+      }
     };
 
     // Add attachments if present
