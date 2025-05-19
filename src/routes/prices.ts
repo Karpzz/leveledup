@@ -1,11 +1,11 @@
 import express from 'express';
 import { PriceCacheService } from '../cache/PriceCache';
-
+import { authenticate } from '../middleware/auth';
 const router = express.Router();
 const priceCache = PriceCacheService.getInstance();
 
 // Get all prices
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
     try {
         const prices = await priceCache.getPrices();
         if (!prices) {
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get specific token price
-router.get('/:token', async (req, res) => {
+router.get('/:token', authenticate, async (req, res) => {
     try {
         const { token } = req.params;
         const prices = await priceCache.getPrices();

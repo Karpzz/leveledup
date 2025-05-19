@@ -1,10 +1,10 @@
 import express from 'express';
 import { NewsCacheService } from '../cache/NewsCache'
-
+import { authenticate } from '../middleware/auth';
 const router = express.Router();
 const newsCache = new NewsCacheService();
 // Get all prices
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
     try {
         const news = await newsCache.getNews();
         if (!news) {

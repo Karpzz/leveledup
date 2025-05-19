@@ -202,7 +202,7 @@ router.post('/validate', authenticate, async (req, res) => {
 
         res.json({
             success: verified,
-            message: verified ? 'Token valid' : 'Invalid token'
+            message: verified ? 'Token valid' : 'Invalid 6 digit code'
         });
     } catch (error) {
         console.error('2FA validation error:', error);

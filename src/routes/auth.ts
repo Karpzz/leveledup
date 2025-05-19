@@ -50,8 +50,8 @@ router.post('/register', async (req: any, res: any) => {
     });
 
     const newUser = await dbService.db?.collection('users').findOne({ username: username });
-    const token = jwt.sign({ id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
-    res.json({ token, user: { _id: newUser?._id, username: newUser?.username, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, notifications: newUser?.notifications, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled } });
+    const token = jwt.sign({ id: newUser?._id, username: newUser?.username, bio: newUser?.bio, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
+    res.json({ token, user: { _id: newUser?._id, username: newUser?.username, bio: newUser?.bio, name: newUser?.name, profile_image_url: newUser?.profile_image_url, wallet_address: newUser?.wallet_address, notifications: newUser?.notifications, type: newUser?.type, twoFactor: newUser?.twoFactor.enabled } });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -84,8 +84,8 @@ router.post('/login', async (req: any, res: any) => {
       read: false
     });
 
-    const token = jwt.sign({ id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, type: user.type, twoFactor: user.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
-    res.json({ token, user: { _id: user._id, username: user.username, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, notifications: user.notifications, type: user.type, twoFactor: user.twoFactor.enabled } });
+    const token = jwt.sign({ id: user._id, username: user.username, bio: user.bio, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, type: user.type, twoFactor: user.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
+    res.json({ token, user: { _id: user._id, username: user.username, bio: user.bio, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, notifications: user.notifications, type: user.type, twoFactor: user.twoFactor.enabled } });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
