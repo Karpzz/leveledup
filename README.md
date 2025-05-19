@@ -1,8 +1,10 @@
 # LeveledUp Backend
 
-This is the backend service for LeveledUp, a modern web application built with Node.js and Express.
+This is the backend service for LeveledUp, a Solana trading workspace.
 
 🌐 Website: [https://leveledup.fun](https://leveledup.fun)
+
+> **Important Notice**: This project is maintained. If you contribute to this project, you must give proper credits to the original author in your contributions and any derived works.
 
 ## Project Structure
 
