@@ -255,13 +255,28 @@ npm run dev
     trade: OTCData;
   }
   ```
-
 - `GET /api/otc` - Get user's OTC trades
   ```typescript
   // Response
   {
     success: boolean;
     trades: OTCData[];
+  }
+  ```
+- `GET /api/otc/trades/:tradeId` - Get specific OTC trade
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    trade: OTCData;
+  }
+  ```
+- `GET /api/otc/validate/:walletAddress` - Validate wallet address
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    balance: number;
   }
   ```
 
@@ -283,13 +298,32 @@ npm run dev
     ticketId: string;
   }
   ```
-
 - `GET /api/support` - Get user's support tickets
   ```typescript
   // Response
   {
     success: boolean;
     tickets: SupportTicket[];
+  }
+  ```
+- `POST /api/support/:support_ticket_id/reply` - Reply to support ticket
+  ```typescript
+  // Request Body
+  {
+    message: string;
+  }
+  // Response
+  {
+    success: boolean;
+    message: string;
+  }
+  ```
+- `GET /api/support/:support_ticket_id` - Get specific support ticket
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    ticket: SupportTicket;
   }
   ```
 
@@ -311,6 +345,14 @@ npm run dev
     featureId: string;
   }
   ```
+- `GET /api/features` - Get user's feature requests
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    features: Feature[];
+  }
+  ```
 
 ### Trade Journal (`/api/journal`)
 - `POST /api/journal` - Create trade journal entry
@@ -330,6 +372,14 @@ npm run dev
     success: boolean;
     message: string;
     trade: TradeData;
+  }
+  ```
+- `GET /api/journal` - Get user's trade journal entries
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    trades: TradeData[];
   }
   ```
 
@@ -361,6 +411,38 @@ npm run dev
     calculation: CalculationData;
   }
   ```
+- `GET /api/calculators` - Get user's calculations
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    calculations: CalculationData[];
+  }
+  ```
+- `PUT /api/calculators/:id` - Update calculation
+  ```typescript
+  // Request Body
+  {
+    name: string;
+    type: string;
+    data: CalculationData['data'];
+  }
+  // Response
+  {
+    success: boolean;
+    message: string;
+    calculation: CalculationData;
+  }
+  ```
+- `DELETE /api/calculators/:id` - Delete calculation
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    message: string;
+    calculation: any;
+  }
+  ```
 
 ### Notifications (`/api/notifications`)
 - `GET /api/notifications` - Get user's notifications
@@ -370,6 +452,51 @@ npm run dev
     success: boolean;
     notifications: Notification[];
     settings: {
+      price_alerts: boolean;
+      transaction_updates: boolean;
+      security_alerts: boolean;
+    };
+  }
+  ```
+- `POST /api/notifications/mark-all-read` - Mark all notifications as read
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    message: string;
+  }
+  ```
+- `POST /api/notifications/clear-all` - Clear all notifications
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    message: string;
+  }
+  ```
+- `POST /api/notifications/:id/read` - Mark notification as read
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    message: string;
+  }
+  ```
+- `DELETE /api/notifications/:id` - Delete notification
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    message: string;
+  }
+  ```
+- `POST /api/notifications/:type/toggle` - Toggle notification type
+  ```typescript
+  // Response
+  {
+    success: boolean;
+    message: string;
+    notifications: {
       price_alerts: boolean;
       transaction_updates: boolean;
       security_alerts: boolean;
