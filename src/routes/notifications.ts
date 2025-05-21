@@ -154,10 +154,6 @@ router.post('/:type/toggle', authenticate, async (req, res) => {
                 message: 'User not found'
             });
         }
-        await dbService.db?.collection('users').updateOne(
-            { _id: user._id },
-            { $set: { [`notifications.${type}`]: !user.notifications[type] } }
-        );
         var title;
         var description;
         if (type === 'price_alerts') {
@@ -166,10 +162,31 @@ router.post('/:type/toggle', authenticate, async (req, res) => {
         } else if (type === 'transaction_updates') {
             title = user.notifications[type] ? 'Transaction Updates Disabled' : 'Transaction Updates Enabled';
             description = user.notifications[type] ? 'You will no longer receive transaction updates.' : 'You will now receive transaction updates.';
+        } else if (type === 'all_notifications') {
+            title = user.notifications[type] ? 'All Notifications Disabled' : 'All Notifications Enabled';
+            description = user.notifications[type] ? 'You will no longer receive any notifications.' : 'You will now receive all notifications.';
         } else {
             title = user.notifications[type] ? 'Security Alerts Disabled' : 'Security Alerts Enabled';
             description = user.notifications[type] ? 'You will no longer receive security alerts.' : 'You will now receive security alerts.';
         }
+        if (type === 'all_notifications' && title === 'All Notifications Disabled') {
+          // Disable all notifications if all_noifications is set to false
+            await dbService.db?.collection('users').updateOne(
+                { _id: user._id },
+                { $set: { 
+                  [`notifications.all_notifications`]: false,
+                  [`notifications.price_alerts`]: false,
+                  [`notifications.transaction_updates`]: false,
+                  [`notifications.security_alerts`]: false
+                } }
+            );
+        } else {
+          await dbService.db?.collection('users').updateOne(
+              { _id: user._id },
+              { $set: { [`notifications.${type}`]: !user.notifications[type] } }
+          );
+        }
+        // Create a notification for the user
         await dbService.createNotification({
             id: uuidv4(),
             user_id: user._id.toString(),

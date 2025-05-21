@@ -6,10 +6,16 @@ import { dbService } from '../services/db';
 import { ObjectId } from 'mongodb';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { Connection } from '@solana/web3.js';
+import { PriceCacheService } from '../cache/PriceCache';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { get_token_balance } from '../utils/get_token_balances';
+import { PortfolioService } from '../services/portfolioService';
+import fs from 'fs';
 dotenv.config();
 
 const router = Router();
-
+const priceCache = PriceCacheService.getInstance();
+const portfolioService = new PortfolioService();
 // Initialize TwitterCache with environment variables
 const twitterCache = new TwitterCache();
 var idlist =['1805761824140218368', '1923865234558812160']
@@ -89,14 +95,61 @@ router.post('/twitter', authenticate, async (req, res) => {
   }
 });
 
-router.get('/portfolio/validate/:walletAddress', async (req: any, res: any) => {
+// update tracked wallet    
+router.put('/wallets/:walletAddress', authenticate, async (req: any, res: any) => {
+    const { walletAddress } = req.params;
+    const { name } = req.body;
+    await dbService.updateWallet(walletAddress, req.user?.id, name);
+    res.json({
+        success: true
+    });
+})
+// get tracked wallets
+router.get('/wallets', authenticate, async (req: any, res: any) => {
+    const wallets = await dbService.getWallets(req.user?.id);
+    res.json(wallets);
+})
+// create tracked wallet
+router.post('/wallets', authenticate, async (req: any, res: any) => {
+    const { walletAddress } = req.body;
+    try {
+        const wallet = await dbService.createWallet({ address: walletAddress, name: "Wallet", user_id: req.user?.id });
+        res.json({
+            success: true,
+            wallet: wallet
+        });
+    } catch (error) {
+        console.error('Failed to create wallet:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create wallet'
+        });
+    }
+})
+
+// delete wallet tracked 
+router.delete('/wallets/:walletAddress', authenticate, async (req: any, res: any) => {   
+    const { walletAddress } = req.params;
+    await dbService.deleteWallet(walletAddress, req.user?.id);
+    res.json({
+        success: true
+    });
+})
+// validate wallet address
+router.get('/wallets/validate/:walletAddress', async (req: any, res: any) => {
     const { walletAddress } = req.params;
     const connection = new Connection(process.env.RPC_URL || 'https://api.devnet.solana.com');
     try {
-        const balance = await connection.getBalance(new PublicKey(walletAddress));
+        const balance = await get_token_balance(new PublicKey(walletAddress), connection);
+        console.log(balance);
+        const prices = await priceCache.getPrices();
+        const solBalance = balance.sol;
+        const balanceInUSD = solBalance * prices.solana.usd;
         res.json({
             success: true,
-            balance: balance / LAMPORTS_PER_SOL
+            balance: parseFloat(solBalance.toFixed(6)),
+            balanceInUSD: parseFloat(balanceInUSD.toFixed(2)),
+            tokens: balance.tokens
         });
     } catch (error) {
         console.error('Error validating wallet address:', error);
@@ -106,4 +159,57 @@ router.get('/portfolio/validate/:walletAddress', async (req: any, res: any) => {
         });
     }
 });
+
+// get wallet details
+router.get('/wallets/details/:walletAddress', async (req: any, res: any) => {
+    const { walletAddress } = req.params;
+    const connection = new Connection(process.env.RPC_URL || 'https://api.devnet.solana.com');
+    try {
+        const balance = await get_token_balance(new PublicKey(walletAddress), connection);
+        const prices = await priceCache.getPrices();
+        const solBalance = balance.sol;
+        const balanceInUSD = solBalance * prices.solana.usd;
+        const tokenDetails = await portfolioService.getTokens(walletAddress);
+        const trades = await portfolioService.getWalletTrades(walletAddress);
+        const tokensList = []
+        fs.writeFileSync('tokenDetails.json', JSON.stringify(tokenDetails, null, 2));
+        for (const tokenInformation of tokenDetails) {
+            const liquiditySum = tokenInformation.pools.reduce((sum: number, pool: any) => sum + pool.liquidity.usd, 0);
+            const highestPricePool = tokenInformation.pools[0];
+            const marketCapSum = tokenInformation.pools.reduce((sum: number, pool: any) => sum + pool.marketCap.usd, 0);
+            const highestMarketCapPool = tokenInformation.pools.find((solToken: any) => solToken.marketCap.usd === Math.max(...tokenInformation.pools.map((t: any) => t.marketCap.usd)));
+            tokensList.push({
+                name: tokenInformation.token.name,
+                symbol: tokenInformation.token.symbol,
+                balance: tokenInformation.balance,
+                image: tokenInformation.token.image,
+                decimals: tokenInformation.token.decimals,
+                token_price: highestPricePool.price.usd,
+                usd_balance: tokenInformation.value,
+                market_cap: marketCapSum,
+                liquidity: liquiditySum,
+                volume: 0,
+                price_change: tokenInformation.events['24h'].priceChangePercentage,
+                instant_change: tokenInformation.events['1h'].priceChangePercentage,
+                risk: tokenInformation.risk
+            })
+        }
+        res.json({
+            success: true,
+            balance: parseFloat(solBalance.toFixed(6)),
+            balanceInUSD: parseFloat(balanceInUSD.toFixed(2)),
+            tokens: tokensList,
+            trades: trades.trades
+        });
+    } catch (error) {
+        console.error('Error validating wallet address:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to validate wallet address'
+        });
+    }
+});
+
+
+
 export default router;

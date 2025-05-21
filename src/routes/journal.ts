@@ -33,6 +33,7 @@ router.post('/', authenticate, async (req, res) => {
 
     // Save to database
     await dbService.db?.collection('journal').insertOne(trade);
+    
     await dbService.createNotification({
       id: uuidv4(),
       user_id: req.user?.id as string,

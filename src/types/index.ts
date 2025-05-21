@@ -118,3 +118,9 @@ export interface SupportTicket {
   status: 'open' | 'in-progress' | 'closed';
   messages: SupportMessage[];
 }
+
+export interface Wallet {
+  address: string;
+  name: string;
+  user_id: string;
+}

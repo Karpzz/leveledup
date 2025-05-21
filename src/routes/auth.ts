@@ -38,6 +38,7 @@ router.post('/register', async (req: any, res: any) => {
       bio: 'Bio here',
       created_at: new Date(),
       notifications: { 
+        all_notifications: false,
         price_alerts: false,
         transaction_updates: false,
         security_alerts: false
@@ -73,16 +74,17 @@ router.post('/login', async (req: any, res: any) => {
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-
-    await dbService.createNotification({
-      id: uuidv4(), 
-      user_id: user._id.toString(),
-      type: 'warning',
-      title: 'Login Detected',
-      message: 'A user has logged into your account.',
-      time: new Date(),
-      read: false
-    });
+    if (user.notifications.all_notifications && user.notifications.security_alerts) {
+      await dbService.createNotification({
+        id: uuidv4(), 
+        user_id: user._id.toString(),
+        type: 'warning',
+        title: 'Login Detected',
+        message: 'A user has logged into your account.',
+        time: new Date(),
+        read: false
+      });
+    }
 
     const token = jwt.sign({ id: user._id, username: user.username, bio: user.bio, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, type: user.type, twoFactor: user.twoFactor.enabled }, process.env.JWT_SECRET || 'secret-key-here');
     res.json({ token, user: { _id: user._id, username: user.username, bio: user.bio, name: user.name, profile_image_url: user.profile_image_url, wallet_address: user.wallet_address, notifications: user.notifications, type: user.type, twoFactor: user.twoFactor.enabled } });
@@ -101,15 +103,17 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
     }
  
     if (user.wallet_address !== wallet_address) {
-      await dbService.createNotification({
-        id: uuidv4(),
-        user_id: user._id.toString(),
-        type: 'warning',
-        title: 'Wallet Change Detected',
-        message: 'A different wallet has been connected to your account.',
-        time: new Date(),
-        read: false
-      });
+      if (user.notifications.all_notifications && user.notifications.transaction_updates) {
+        await dbService.createNotification({
+          id: uuidv4(),
+          user_id: user._id.toString(),
+          type: 'warning',
+          title: 'Wallet Change Detected',
+          message: 'A different wallet has been connected to your account.',
+          time: new Date(),
+          read: false
+        });
+      }
     }
     
     // Update user with wallet address
@@ -153,22 +157,5 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-async function verifyMessage({ message, signature, publicKey }: { message: string, signature: string, publicKey: PublicKey }) {
-    try {
-        const messageBytes = decodeUTF8(message);
-        const signatureBytes = bs58.decode(signature);
-        const publicKeyBytes = publicKey.toBytes();
-
-        return nacl.sign.detached.verify(
-            messageBytes,
-            signatureBytes,
-            publicKeyBytes
-        );
-    } catch (error) {
-        console.error('Error verifying message:', error);
-        return false;
-    }
-}
 
 export default router;  

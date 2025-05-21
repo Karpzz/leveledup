@@ -1,7 +1,7 @@
-import { MongoClient, Db } from 'mongodb';
-import { TwitterUser } from '../types';
+import { MongoClient, Db, ObjectId } from 'mongodb';
+import { TwitterUser, Wallet } from '../types';
 import dotenv from 'dotenv';
-import { Notification } from '../types';
+import { Notification} from '../types';
 dotenv.config();
 
 class DatabaseService {
@@ -49,7 +49,32 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not connected');
     
     await this.db.collection('notifications').insertOne(notification);
-  } 
+  }
+  
+  async getWallets(user_id: string): Promise<Wallet[]> {
+    if (!this.db) throw new Error('Database not connected');
+    
+    return this.db.collection('wallet-tracker').find<Wallet>({ user_id }).toArray();
+  }
+
+  async createWallet(wallet: Wallet): Promise<Wallet> {
+    if (!this.db) throw new Error('Database not connected');
+    
+    await this.db.collection('wallet-tracker').insertOne(wallet);
+    return wallet;
+  }
+  
+  async deleteWallet(walletAddress: string, user_id: string): Promise<void> {
+    if (!this.db) throw new Error('Database not connected');
+    
+    await this.db.collection('wallet-tracker').deleteOne({ address: walletAddress, user_id });
+  }
+
+  async updateWallet(walletAddress: string, user_id: string, name: string): Promise<void> {
+    if (!this.db) throw new Error('Database not connected');
+    
+    await this.db.collection('wallet-tracker').updateOne({ address: walletAddress, user_id }, { $set: { name } });
+  }
 }
 
 export const dbService = new DatabaseService(); 
