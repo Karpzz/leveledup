@@ -18,6 +18,7 @@ import swapRoutes from './routes/swap';
 import twoFactorRouter from './routes/2fa';
 import trackerRoutes from './routes/tracker';
 import userRoutes from './routes/user';
+import tokenRoutes from './routes/token';
 dotenv.config();
 const app = express();
 
@@ -52,6 +53,7 @@ apiRoutes.use('/calculators', calculatorsRoutes);
 apiRoutes.use('/journal', journalRoutes);
 apiRoutes.use('/tracker', trackerRoutes);
 apiRoutes.use('/user', userRoutes);
+apiRoutes.use('/token', tokenRoutes);
 
 app.use('/api', apiRoutes);
 

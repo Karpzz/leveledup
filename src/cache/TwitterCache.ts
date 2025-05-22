@@ -75,7 +75,7 @@ export class TwitterCache {
     this.client.connect().then(() => {
       this.db = this.client.db('leveledup')
       console.log('Twitter Cache Connected to MongoDB')
-      this.run()
+      // this.run()
     })
   }
 
@@ -133,39 +133,43 @@ export class TwitterCache {
 
   
   async updateUser(userId: string, user_id_to_add: string | null = null) {
-    const user = await this.db.collection('twitter-tracker').findOne({ user_id: userId })
-    if (!user) {
-      const userData = await this.getUserDetails(null, userId)
-      await this.db.collection('twitter-tracker').insertOne({
-        username: userData.username,
-        user_id: userId,
-        user_data: userData,
-        tweets: [],
-        users: user_id_to_add ? [user_id_to_add] : [],
-        created_at: new Date()
-      })
-    } else {
-      const userData = await this.getUserDetails(null, userId)
-      await this.db.collection('twitter-tracker').updateOne({ user_id: userId }, { $set: { user_data: userData } })
-    }
-
-    // update users tweets
-    const updatedUser = await this.db.collection('twitter-tracker').findOne({ user_id: userId })
-    if (!updatedUser) {
-      throw new Error('User not found')
-    }
-    const tweets = await this.getUserTweets(updatedUser.user_id)
-    const existingTweetIds = updatedUser.tweets.map((tweet: Tweet) => tweet.tweet_id)
-    if (tweets.results.length > 0) {
-      // check by tweet_id if the tweet is already in the tweets array
-      const nonExistingTweets = tweets.results.filter((tweet: Tweet) => !existingTweetIds.includes(tweet.tweet_id))
-      if (nonExistingTweets.length > 0) {
-        updatedUser.tweets = [...updatedUser.tweets, ...nonExistingTweets]
+    try {
+      const user = await this.db.collection('twitter-tracker').findOne({ user_id: userId })
+      if (!user) {
+        const userData = await this.getUserDetails(null, userId)
+        await this.db.collection('twitter-tracker').insertOne({
+          username: userData.username,
+          user_id: userId,
+          user_data: userData,
+          tweets: [],
+          users: user_id_to_add ? [user_id_to_add] : [],
+          created_at: new Date()
+        })
+      } else {
+        const userData = await this.getUserDetails(null, userId)
+        await this.db.collection('twitter-tracker').updateOne({ user_id: userId }, { $set: { user_data: userData } })
       }
-      
+
+      // update users tweets
+      const updatedUser = await this.db.collection('twitter-tracker').findOne({ user_id: userId })
+      if (!updatedUser) {
+        throw new Error('User not found')
+      }
+      const tweets = await this.getUserTweets(updatedUser.user_id)
+      const existingTweetIds = updatedUser.tweets.map((tweet: Tweet) => tweet.tweet_id)
+      if (tweets.results.length > 0) {
+        // check by tweet_id if the tweet is already in the tweets array
+        const nonExistingTweets = tweets.results.filter((tweet: Tweet) => !existingTweetIds.includes(tweet.tweet_id))
+        if (nonExistingTweets.length > 0) {
+          updatedUser.tweets = [...updatedUser.tweets, ...nonExistingTweets]
+        }
+        
+      }
+      console.log(`Updated ${updatedUser.username} tweets to ${updatedUser.tweets.length}`)
+      await this.db.collection('twitter-tracker').updateOne({ user_id: userId }, { $set: { tweets: updatedUser.tweets } })
+    } catch (error) {
+      console.error(`Error updating user ${userId}: ${error}`)
     }
-    console.log(`Updated ${updatedUser.username} tweets to ${updatedUser.tweets.length}`)
-    await this.db.collection('twitter-tracker').updateOne({ user_id: userId }, { $set: { tweets: updatedUser.tweets } })
   }
 
   async getTrackedUser(userId: string) {

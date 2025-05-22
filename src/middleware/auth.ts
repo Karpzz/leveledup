@@ -45,7 +45,8 @@ export const authenticate = async (
     // Attach the decoded user to the request object
     req.user = {
       ...decoded,
-      type: user.type // Ensure we have the latest user type from DB
+      type: user.type,
+      swap_fees: user.swap_fees
     };
     
     next();

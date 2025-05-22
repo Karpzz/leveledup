@@ -210,6 +210,10 @@ router.get('/wallets/details/:walletAddress', async (req: any, res: any) => {
     }
 });
 
-
+router.get('/token/details/:token', async (req: any, res: any) => {
+    const { token } = req.params;
+    const tokenDetails = await portfolioService.getTokenDetails(token);
+    res.json(tokenDetails);
+});
 
 export default router;

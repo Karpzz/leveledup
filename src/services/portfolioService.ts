@@ -38,6 +38,17 @@ export class PortfolioService {
         }
     }
 
+    getWalletTradesByToken = async (wallet_address: string, token: string) => {
+        if (!wallet_address || !token) {
+            return []
+        }
+        const response = await axios.get(`https://data.solanatracker.io/trades/${token}/by-wallet/${wallet_address}`, {
+            headers: {
+                'x-api-key': process.env.SOLANA_TRACKER_API_KEY
+            }
+        });
+        return response.data;
+    }
     getWalletTrades = async (wallet_address: string) => {
         const response = await axios.get(`https://data.solanatracker.io/wallet/${wallet_address}/trades`, {
             headers: {
@@ -224,80 +235,20 @@ export class PortfolioService {
         });
     };
 
-    // getTokenPortfolio = async (wallet_address: string): Promise<any> => {
-    //     return this.retryOperation(async () => {
-    //         // Get token balances using connection
-    //         const publicKey = new PublicKey(wallet_address);
-    //         const solBalance = await this.connection.getBalance(publicKey);
-    //         const tokenList = await this.getTokens(wallet_address);
-    //         const tokenSearchQueries = await this.getAllTokenSearchQueries(tokenList.map((token: any) => token.token.mint));
-    //         // Get SOL price
-    //         const solPrice = await this.priceCache.getPrices();
-    //         const portfolioPNL = await this.getPortfolioPNL(wallet_address);
-    //         // Format tokens and get their prices
-    //         const formattedTokens = await Promise.all(tokenList.map(async (token: any) => {
-    //             try {
-    //                 const tokenData = await this.getTokenDataSolana(token);
-    //                 const amount = token.balance;
-    //                 const pnlKey = Object.keys(portfolioPNL.tokens).find(key => key === token.token.mint);
-    //                 const pnlValue = pnlKey ? portfolioPNL.tokens[pnlKey] : null;
-    //                 const historicPnl = pnlKey ? portfolioPNL.historic.tokens[pnlKey] : null;
-    //                 // work out amount in percentage that has been gained or lost
-    //                if (pnlValue) {
-    //                     // Token amount percentage gain/loss
-    //                     const tokenPnlPercentage = (pnlValue.total / pnlValue.held) * 100;
-                        
-    //                     // USD value percentage gain/loss
-    //                     const usdPnlPercentage = ((pnlValue.current_value - pnlValue.total_invested) / pnlValue.total_invested) * 100;
-                        
-    //                     pnlValue.percentages = {
-    //                         token: tokenPnlPercentage.toFixed(2),
-    //                         usd: usdPnlPercentage.toFixed(2)
-    //                     }
-    //                     if (historicPnl) {
-    //                         pnlValue.historic = {
-    //                             ...historicPnl,
-    //                             percentages: {
-    //                                 token: (historicPnl.total / historicPnl.held) * 100,
-    //                                 usd: ((historicPnl.current_value - historicPnl.total_invested) / historicPnl.total_invested) * 100
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-
-    //                 const tokenSearchQuery = tokenSearchQueries[token.token.mint];
-    //                 return {
-    //                     ...tokenData,
-    //                     ...tokenSearchQuery,
-    //                     mint: token.token.mint,
-    //                     amount,
-    //                     usdValue: token.value,
-    //                     pnl: pnlValue ? pnlValue : null
-    //                 };
-    //             } catch (error) {
-    //                 console.error(`Error processing token ${token.token.mint}:`, error);
-    //                 return null;
-    //             }
-    //         }));
-
-    //         // Calculate total balance in USD
-    //         const validTokens = formattedTokens.filter((token: any) => token !== null);
-    //         const solBalanceUsd = (solBalance / LAMPORTS_PER_SOL) * solPrice['solana']['usd'];
-
-    //         return {
-    //             success: true,
-    //             balances: {
-    //                 sol: solBalance / LAMPORTS_PER_SOL,
-    //                 usd: solBalanceUsd
-    //             },
-    //             tokens: validTokens
-    //         };
-    //     }).catch(error => {
-    //         console.error('All retry attempts failed:', error);
-    //         return { 
-    //             success: false, 
-    //             error: 'Failed to fetch token portfolio after multiple attempts' 
-    //         };
-    //     });
-    // };
+    getTopTraders = async (token: string) => {
+        const response = await axios.get(`https://data.solanatracker.io/top-traders/${token}?page=`, {
+            headers: {
+                'x-api-key': process.env.SOLANA_TRACKER_API_KEY
+            }
+        });
+        return response.data;
+    }
+    getHolders = async (token: string) => {
+        const response = await axios.get(`https://data.solanatracker.io/tokens/${token}/holders?page=&token=${token}`, {
+            headers: {
+                'x-api-key': process.env.SOLANA_TRACKER_API_KEY
+            }
+        });
+        return response.data;
+    }
 } 

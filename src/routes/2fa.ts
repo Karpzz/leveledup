@@ -1,3 +1,8 @@
+/**
+ * Two-Factor Authentication (2FA) Router
+ * Handles all 2FA-related operations including setup, verification, validation, and management.
+ */
+
 import express from 'express';
 import { authenticate } from '../middleware/auth';
 import { dbService } from '../services/db';
@@ -8,11 +13,22 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
-// Generate 2FA secret and QR code
+/**
+ * Constants
+ */
+const TEMP_SECRET_EXPIRY = 15 * 60 * 1000; // 15 minutes in milliseconds
+const TOTP_WINDOW = 1; // Allow 30 seconds clock skew
+
+/**
+ * @route   POST /2fa/setup
+ * @desc    Initialize 2FA setup by generating secret and QR code
+ * @access  Private
+ */
 router.post('/setup', authenticate, async (req, res) => {
     try {
         const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user?.id) });
         
+        // Check if 2FA is already enabled
         if (user?.twoFactor?.enabled) {
             return res.status(400).json({
                 success: false,
@@ -20,16 +36,16 @@ router.post('/setup', authenticate, async (req, res) => {
             });
         }
 
-        // Generate secret
+        // Generate new secret for 2FA
         const secret = speakeasy.generateSecret({
             name: `Leveled Up - ${user?.username}`,
             length: 16
         });
 
-        // Generate QR code
+        // Generate QR code for easy secret sharing
         const qrCode = await QRCode.toDataURL(secret.otpauth_url!);
 
-        // Store temporary secret
+        // Store temporary secret with timestamp
         await dbService.db?.collection('users').updateOne(
             { _id: new ObjectId(req.user?.id) },
             { 
@@ -43,7 +59,7 @@ router.post('/setup', authenticate, async (req, res) => {
             }
         );
 
-        // Create notification
+        // Notify user about 2FA setup initiation
         await dbService.createNotification({
             id: uuidv4(),
             user_id: req.user?.id as string,
@@ -57,7 +73,7 @@ router.post('/setup', authenticate, async (req, res) => {
         res.json({
             success: true,
             qrCode,
-            secret: secret.base32 // Backup key for manual entry
+            secret: secret.base32 // Provided as backup for manual entry
         });
     } catch (error) {
         console.error('2FA setup error:', error);
@@ -68,11 +84,16 @@ router.post('/setup', authenticate, async (req, res) => {
     }
 });
 
-// Verify and enable 2FA
+/**
+ * @route   POST /2fa/verify
+ * @desc    Verify and enable 2FA after initial setup
+ * @access  Private
+ */
 router.post('/verify', authenticate, async (req, res) => {
     try {
         const { token } = req.body;
 
+        // Validate input
         if (!token) {
             return res.status(400).json({
                 success: false,
@@ -84,6 +105,7 @@ router.post('/verify', authenticate, async (req, res) => {
             _id: new ObjectId(req.user?.id)
         });
 
+        // Verify setup was initiated
         if (!user?.twoFactorTemp?.secret) {
             return res.status(400).json({
                 success: false,
@@ -91,9 +113,9 @@ router.post('/verify', authenticate, async (req, res) => {
             });
         }
 
-        // Check if temp secret is not too old (15 minutes)
+        // Check if temporary secret hasn't expired
         const tempSecretAge = new Date().getTime() - new Date(user.twoFactorTemp.createdAt).getTime();
-        if (tempSecretAge > 15 * 60 * 1000) {
+        if (tempSecretAge > TEMP_SECRET_EXPIRY) {
             await dbService.db?.collection('users').updateOne(
                 { _id: new ObjectId(req.user?.id) },
                 { $unset: { twoFactorTemp: "" } }
@@ -104,7 +126,7 @@ router.post('/verify', authenticate, async (req, res) => {
             });
         }
 
-        // Verify token
+        // Verify provided token
         const verified = speakeasy.totp.verify({
             secret: user.twoFactorTemp.secret,
             encoding: 'base32',
@@ -118,7 +140,7 @@ router.post('/verify', authenticate, async (req, res) => {
             });
         }
 
-        // Enable 2FA
+        // Enable 2FA and remove temporary secret
         await dbService.db?.collection('users').updateOne(
             { _id: new ObjectId(req.user?.id) },
             {
@@ -133,7 +155,7 @@ router.post('/verify', authenticate, async (req, res) => {
             }
         );
 
-        // Create notification
+        // Notify user about successful 2FA enablement
         await dbService.createNotification({
             id: uuidv4(),
             user_id: req.user?.id as string,
@@ -157,7 +179,11 @@ router.post('/verify', authenticate, async (req, res) => {
     }
 });
 
-// Validate 2FA token (for login)
+/**
+ * @route   POST /2fa/validate
+ * @desc    Validate 2FA token during login
+ * @access  Private
+ */
 router.post('/validate', authenticate, async (req, res) => {
     try {
         const { token } = req.body;
@@ -180,15 +206,16 @@ router.post('/validate', authenticate, async (req, res) => {
             });
         }
 
-        // Verify token with a window of 1 to allow for time drift
+        // Verify token with time window allowance
         const verified = speakeasy.totp.verify({
             secret: user.twoFactor.secret,
             encoding: 'base32',
             token: token,
-            window: 1 // Allow 30 seconds clock skew
+            window: TOTP_WINDOW
         });
 
         if (verified) {
+            // Log successful 2FA login
             await dbService.createNotification({
                 id: uuidv4(),
                 user_id: req.user?.id as string,
@@ -213,7 +240,11 @@ router.post('/validate', authenticate, async (req, res) => {
     }
 });
 
-// Disable 2FA
+/**
+ * @route   POST /2fa/disable
+ * @desc    Disable 2FA for user account
+ * @access  Private
+ */
 router.post('/disable', authenticate, async (req, res) => {
     try {
         const { token } = req.body;
@@ -229,7 +260,7 @@ router.post('/disable', authenticate, async (req, res) => {
             });
         }
 
-        // Verify token one last time
+        // Final verification before disabling
         const verified = speakeasy.totp.verify({
             secret: user.twoFactor.secret,
             encoding: 'base32',
@@ -243,13 +274,13 @@ router.post('/disable', authenticate, async (req, res) => {
             });
         }
 
-        // Disable 2FA
+        // Remove 2FA configuration
         await dbService.db?.collection('users').updateOne(
             { _id: new ObjectId(req.user?.id) },
             { $unset: { twoFactor: "" } }
         );
 
-        // Create notification
+        // Notify user about 2FA disablement
         await dbService.createNotification({
             id: uuidv4(),
             user_id: req.user?.id as string,
@@ -273,7 +304,11 @@ router.post('/disable', authenticate, async (req, res) => {
     }
 });
 
-// Get 2FA Status
+/**
+ * @route   GET /2fa/status
+ * @desc    Get current 2FA status for user
+ * @access  Private
+ */
 router.get('/status', authenticate, async (req, res) => {
     try {
         const user = await dbService.db?.collection('users').findOne({
