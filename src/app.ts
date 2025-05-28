@@ -19,6 +19,7 @@ import twoFactorRouter from './routes/2fa';
 import trackerRoutes from './routes/tracker';
 import userRoutes from './routes/user';
 import tokenRoutes from './routes/token';
+import leaderboardRoutes from './routes/leaderboard';
 dotenv.config();
 const app = express();
 
@@ -39,8 +40,8 @@ app.use(
     },
   })
 );
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 
+// API Routes - Define these BEFORE the catch-all route
 const apiRoutes = express.Router();
 apiRoutes.use('/prices', pricesRoutes);
 apiRoutes.use('/news', newsRoutes);
@@ -54,7 +55,7 @@ apiRoutes.use('/journal', journalRoutes);
 apiRoutes.use('/tracker', trackerRoutes);
 apiRoutes.use('/user', userRoutes);
 apiRoutes.use('/token', tokenRoutes);
-
+apiRoutes.use('/leaderboard', leaderboardRoutes);
 app.use('/api', apiRoutes);
 
 // Auth routes
@@ -69,7 +70,8 @@ app.use('/files', filesRoutes);
 // 2FA routes
 app.use('/2fa', twoFactorRouter);
 
-// Home page
+// Static and catch-all routes should be LAST
+app.use(express.static(path.join(__dirname, '..', 'frontend', 'dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'dist', 'index.html'));
 });

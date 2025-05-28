@@ -84,12 +84,12 @@ router.post('/execute', authenticate, async (req, res) => {
 
 router.get('/quote', authenticate, async (req, res) => {
   try {
-    const { inputMint, outputMint, amount, wallet_address, includeSwap } = req.query;
+    const { inputMint, outputMint, amount, wallet_address, includeSwap, slippageBps } = req.query;
     const params = new URLSearchParams({
       inputMint: inputMint as string,
       outputMint: outputMint as string,
       amount: amount as string,
-      slippageBps: '500',
+      slippageBps: slippageBps as string,
       restrictIntermediateTokens: 'true',
       platformFeeBps: `${req.user?.swap_fees * 100}`,
       swapMode: 'ExactIn'

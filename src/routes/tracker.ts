@@ -178,10 +178,12 @@ router.get('/wallets/details/:walletAddress', async (req: any, res: any) => {
             const highestPricePool = tokenInformation.pools[0];
             const marketCapSum = tokenInformation.pools.reduce((sum: number, pool: any) => sum + pool.marketCap.usd, 0);
             const highestMarketCapPool = tokenInformation.pools.find((solToken: any) => solToken.marketCap.usd === Math.max(...tokenInformation.pools.map((t: any) => t.marketCap.usd)));
+            console.log(tokenInformation.token.mint);
             tokensList.push({
                 name: tokenInformation.token.name,
                 symbol: tokenInformation.token.symbol,
                 balance: tokenInformation.balance,
+                address: tokenInformation.token.mint,
                 image: tokenInformation.token.image,
                 decimals: tokenInformation.token.decimals,
                 token_price: highestPricePool.price.usd,

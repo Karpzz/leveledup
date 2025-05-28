@@ -15,22 +15,46 @@ const portfolioService = new PortfolioService();
 
 
 
-router.get('/details/:token',  authenticate, async (req: any, res: any) => {
-    const { token } = req.params;
-    let holders, topTraders, userTrades;
-    const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+router.get('/details/:token', authenticate, async (req: any, res: any) => {
     try {
-        holders = await portfolioService.getHolders(token);
-        topTraders = await portfolioService.getTopTraders(token);
-        userTrades = await portfolioService.getWalletTradesByToken(user?.wallet_address, token);
-    } catch (error) {
-        console.error(error);
+        const { token } = req.params;
+        
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                error: 'Token address is required'
+            });
+        }
+
+        const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        const [holders, topTraders, userTradesResult] = await Promise.all([
+            portfolioService.getHolders(token),
+            portfolioService.getTopTraders(token),
+            portfolioService.getWalletTradesByToken(user.wallet_address, token)
+        ]);
+
+        return res.json({
+            success: true,
+            data: {
+                holders: holders || { accounts: [], total: 0 },
+                top_traders: topTraders || [],
+                trades: userTradesResult?.trades || []
+            }
+        });
+    } catch (error: any) {
+        console.error('Token details error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to fetch token details'
+        });
     }
-    res.json({
-        holders: holders,
-        top_traders: topTraders,
-        trades: userTrades.trades
-    });
 });
 
 router.get('/balances/:token',  authenticate, async (req: any, res: any) => {

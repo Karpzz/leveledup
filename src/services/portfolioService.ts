@@ -202,6 +202,7 @@ export class PortfolioService {
                 }
                 tokensList.push({
                     name: tokenInformation.token.name,
+                    address: tokenInformation.token.mint,
                     symbol: tokenInformation.token.symbol,
                     amount: tokenInformation.balance,
                     image: tokenInformation.token.image,
