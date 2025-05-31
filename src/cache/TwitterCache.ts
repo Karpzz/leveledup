@@ -75,6 +75,7 @@ export class TwitterCache {
     this.client.connect().then(() => {
       this.db = this.client.db('leveledup')
       console.log('Twitter Cache Connected to MongoDB')
+      this.run()
     })
   }
 

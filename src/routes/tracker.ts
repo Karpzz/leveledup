@@ -27,7 +27,6 @@ router.get('/twitter', authenticate, async (req, res) => {
 
     // return all users where users array has req.user.id
     const users = await twitterCache.getAllTrackedUsers(withTweetsBool);
-    console.log(users);
     const usersFiltered = users.filter((user) => user.users.includes(req.user?.id) || idlist.includes(user.user_id));
     // remove users array from each user before sending response
     var userData = usersFiltered.map((user) => {

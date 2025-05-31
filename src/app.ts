@@ -20,6 +20,7 @@ import trackerRoutes from './routes/tracker';
 import userRoutes from './routes/user';
 import tokenRoutes from './routes/token';
 import leaderboardRoutes from './routes/leaderboard';
+import transactionsRoutes from './routes/transactions';
 dotenv.config();
 const app = express();
 
@@ -56,6 +57,7 @@ apiRoutes.use('/tracker', trackerRoutes);
 apiRoutes.use('/user', userRoutes);
 apiRoutes.use('/token', tokenRoutes);
 apiRoutes.use('/leaderboard', leaderboardRoutes);
+apiRoutes.use('/transactions', transactionsRoutes);
 app.use('/api', apiRoutes);
 
 // Auth routes

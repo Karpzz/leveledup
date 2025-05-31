@@ -45,4 +45,16 @@ router.post('/avatar', authenticate, upload.single('avatar'), async (req, res) =
     res.json({ success: true, message: 'Avatar updated', profile_image_url: file_id?.insertedId.toString() });
 });
 
+router.post('/wallet-reveal', authenticate, async (req, res) => {
+    const { enabled, fee } = req.body;
+    const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user?.id) });
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+    user.reveal_wallet.enabled = enabled;
+    user.reveal_wallet.fee = fee;
+    await dbService.db?.collection('users').updateOne({ _id: new ObjectId(req.user?.id) }, { $set: user });
+    res.json({ success: true, message: 'Wallet reveal updated' });
+});
+
 export default router;

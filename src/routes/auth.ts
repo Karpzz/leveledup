@@ -68,7 +68,11 @@ router.post('/register', async (req: any, res: any) => {
         secret: null, 
         enabled: false
       },
-      swap_fees: 2
+      swap_fees: 2,
+      reveal_wallet: {
+        enabled: false,
+        fee: 0.001
+      }
     });
 
     // Retrieve created user and generate JWT
@@ -82,7 +86,8 @@ router.post('/register', async (req: any, res: any) => {
         profile_image_url: newUser?.profile_image_url, 
         wallet_address: newUser?.wallet_address, 
         type: newUser?.type, 
-        twoFactor: newUser?.twoFactor.enabled 
+        twoFactor: newUser?.twoFactor.enabled,
+        reveal_wallet: newUser?.reveal_wallet
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -99,7 +104,8 @@ router.post('/register', async (req: any, res: any) => {
         wallet_address: newUser?.wallet_address, 
         notifications: newUser?.notifications, 
         type: newUser?.type, 
-        twoFactor: newUser?.twoFactor.enabled 
+        twoFactor: newUser?.twoFactor.enabled,
+        reveal_wallet: newUser?.reveal_wallet
       } 
     });
   } catch (error) {
@@ -156,7 +162,8 @@ router.post('/login', async (req: any, res: any) => {
         profile_image_url: user.profile_image_url, 
         wallet_address: user.wallet_address, 
         type: user.type, 
-        twoFactor: user.twoFactor.enabled 
+        twoFactor: user.twoFactor.enabled,
+        reveal_wallet: user.reveal_wallet
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -173,7 +180,8 @@ router.post('/login', async (req: any, res: any) => {
         wallet_address: user.wallet_address, 
         notifications: user.notifications, 
         type: user.type, 
-        twoFactor: user.twoFactor.enabled 
+        twoFactor: user.twoFactor.enabled,
+        reveal_wallet: user.reveal_wallet
       } 
     });
   } catch (error) {
@@ -233,7 +241,8 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         wallet_address: updatedUser?.wallet_address,
         twitter_id: updatedUser?.id,
         type: updatedUser?.type,
-        twoFactor: updatedUser?.twoFactor.enabled
+        twoFactor: updatedUser?.twoFactor.enabled,
+        reveal_wallet: updatedUser?.reveal_wallet
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -250,7 +259,8 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         wallet_address: updatedUser?.wallet_address,
         notifications: updatedUser?.notifications,
         type: updatedUser?.type,
-        twoFactor: updatedUser?.twoFactor.enabled
+        twoFactor: updatedUser?.twoFactor.enabled,
+        reveal_wallet: updatedUser?.reveal_wallet
       } 
     });
   } catch (error) {

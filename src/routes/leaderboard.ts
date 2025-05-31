@@ -28,7 +28,9 @@ router.get('/all', authenticate, async (req, res) => {
             wallet_address: 1,
             'portfolioPnl.historic.summary': 1,
             
-            profile_image_url: 1
+            profile_image_url: 1,
+            reveal_wallet: 1,
+            _id: 1
           }
         }
       )
@@ -40,7 +42,9 @@ router.get('/all', authenticate, async (req, res) => {
       wallet_address: user.wallet_address ? `${user.wallet_address.slice(0, 4)}...${user.wallet_address.slice(-4)}` : '',
       portfolioPnl: user.portfolioPnl?.historic?.summary || 0   ,
       pnlUpdatedAt: user.portfolioPnl?.pnl_since || 0,
-      profile_image_url: user.profile_image_url || ''
+      profile_image_url: user.profile_image_url || '',
+      reveal_wallet: user.reveal_wallet || {enabled: false, fee: 1},
+      _id: user._id
     })) || [];
 
     // CHECK TO SEE IF THE USER IS IN THE LEADERBOARD
