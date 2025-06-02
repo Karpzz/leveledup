@@ -140,3 +140,4 @@ ngrok.yml
 ngrok.exe
 frontend
 .DS_Store
+venv/

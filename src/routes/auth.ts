@@ -191,6 +191,75 @@ router.post('/login', async (req: any, res: any) => {
 });
 
 /**
+ * User login endpoint
+ * 
+ * @route   POST /auth/login/telegram
+ * @desc    Authenticate user and return JWT token
+ * @access  Public
+ */
+router.post('/login/telegram', async (req: any, res: any) => {
+  const { telegram_id } = req.body;
+  
+  try {
+    // Find user by username
+    const user = await dbService.db?.collection('users').findOne({ telegram_id: telegram_id });
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid telegram id' });
+    }
+
+    // Create security notification if enabled
+    if (user.notifications.all_notifications && user.notifications.security_alerts) {
+      await dbService.createNotification({
+        id: uuidv4(), 
+        user_id: user._id.toString(),
+        type: 'warning',
+        title: 'Telegram Login Detected',
+        message: 'A user has logged into your account via telegram.',
+        time: new Date(),
+        read: false
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        username: user.username, 
+        bio: user.bio, 
+        name: user.name, 
+        profile_image_url: user.profile_image_url, 
+        wallet_address: user.wallet_address, 
+        type: user.type, 
+        twoFactor: user.twoFactor.enabled,
+        reveal_wallet: user.reveal_wallet
+      }, 
+      process.env.JWT_SECRET || DEFAULT_JWT_SECRET
+    );
+
+    // Return token and user data
+    res.json({ 
+      token, 
+      user: { 
+        _id: user._id, 
+        username: user.username, 
+        bio: user.bio, 
+        name: user.name, 
+        profile_image_url: user.profile_image_url, 
+        wallet_address: user.wallet_address, 
+        notifications: user.notifications, 
+        type: user.type, 
+        twoFactor: user.twoFactor.enabled,
+        reveal_wallet: user.reveal_wallet
+      } 
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+/**
  * Wallet connection endpoint
  * 
  * @route   POST /auth/wallet/connect
