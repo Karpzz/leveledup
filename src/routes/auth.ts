@@ -198,11 +198,11 @@ router.post('/login', async (req: any, res: any) => {
  * @access  Public
  */
 router.post('/login/telegram', async (req: any, res: any) => {
-  const { telegram_id } = req.body;
+  const { telegram_id, temporary_password } = req.body;
   
   try {
     // Find user by username
-    const user = await dbService.db?.collection('users').findOne({ telegram_id: telegram_id });
+    const user = await dbService.db?.collection('users').findOne({ telegram_id: telegram_id, temporary_password: temporary_password });
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid telegram id' });
@@ -235,6 +235,12 @@ router.post('/login/telegram', async (req: any, res: any) => {
         reveal_wallet: user.reveal_wallet
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
+    );
+
+    // delete temporary password
+    await dbService.db?.collection('users').updateOne(
+      { _id: new ObjectId(user._id) },
+      { $unset: { temporary_password: 1 } }
     );
 
     // Return token and user data
