@@ -11,7 +11,7 @@ import { ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import { authenticate } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { PublicKey } from '@solana/web3.js';
+import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { decodeUTF8 } from 'tweetnacl-util';
@@ -46,7 +46,7 @@ router.post('/register', async (req: any, res: any) => {
 
     // Hash the password with bcrypt
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
+    const builtin_wallet = Keypair.generate();
     // Create new user with default settings
     await dbService.db?.collection('users').insertOne({
       username,
@@ -72,6 +72,10 @@ router.post('/register', async (req: any, res: any) => {
       reveal_wallet: {
         enabled: false,
         fee: 0.001
+      },
+      builtin_wallet: {
+        public_key: builtin_wallet.publicKey.toBase58(),
+        private_key: bs58.encode(builtin_wallet.secretKey)
       }
     });
 
@@ -87,7 +91,8 @@ router.post('/register', async (req: any, res: any) => {
         wallet_address: newUser?.wallet_address, 
         type: newUser?.type, 
         twoFactor: newUser?.twoFactor.enabled,
-        reveal_wallet: newUser?.reveal_wallet
+        reveal_wallet: newUser?.reveal_wallet,
+        builtin_wallet: newUser?.builtin_wallet.public_key
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -105,7 +110,8 @@ router.post('/register', async (req: any, res: any) => {
         notifications: newUser?.notifications, 
         type: newUser?.type, 
         twoFactor: newUser?.twoFactor.enabled,
-        reveal_wallet: newUser?.reveal_wallet
+        reveal_wallet: newUser?.reveal_wallet,
+        builtin_wallet: newUser?.builtin_wallet.public_key
       } 
     });
   } catch (error) {
@@ -163,7 +169,8 @@ router.post('/login', async (req: any, res: any) => {
         wallet_address: user.wallet_address, 
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
-        reveal_wallet: user.reveal_wallet
+        reveal_wallet: user.reveal_wallet,
+        builtin_wallet: user.builtin_wallet.public_key
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -181,7 +188,8 @@ router.post('/login', async (req: any, res: any) => {
         notifications: user.notifications, 
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
-        reveal_wallet: user.reveal_wallet
+        reveal_wallet: user.reveal_wallet,
+        builtin_wallet: user.builtin_wallet.public_key
       } 
     });
   } catch (error) {
