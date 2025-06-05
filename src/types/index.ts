@@ -23,6 +23,7 @@ export interface Notification {
   message: string;
   time: Date;
   read: boolean;
+  [key: string]: any;
 }
 
 export interface CalculationData {

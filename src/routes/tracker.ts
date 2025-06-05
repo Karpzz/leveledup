@@ -171,7 +171,6 @@ router.get('/wallets/details/:walletAddress', async (req: any, res: any) => {
         const tokenDetails = await portfolioService.getTokens(walletAddress);
         const trades = await portfolioService.getWalletTrades(walletAddress);
         const tokensList = []
-        fs.writeFileSync('tokenDetails.json', JSON.stringify(tokenDetails, null, 2));
         for (const tokenInformation of tokenDetails) {
             const liquiditySum = tokenInformation.pools.reduce((sum: number, pool: any) => sum + pool.liquidity.usd, 0);
             const highestPricePool = tokenInformation.pools[0];

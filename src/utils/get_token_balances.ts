@@ -5,7 +5,6 @@ import { Connection } from "@solana/web3.js";
 
 /**
  * Get the token balances of a Solana wallet
- * @param agent - SolanaAgentKit instance
  * @param token_address - Optional SPL token mint address. If not provided, returns SOL balance
  * @returns Promise resolving to the balance as an object containing sol balance and token balances with their respective mints, symbols, names and decimals
  */
@@ -16,6 +15,7 @@ export async function get_token_balance(
 ): Promise<{
   sol: number;
   tokens: Array<any>;
+  [key: string]: any;
 }> {
   // Create a new connection with Helius RPC
   const [lamportsBalance, tokenAccountData] = await Promise.all([

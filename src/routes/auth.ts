@@ -11,14 +11,19 @@ import { ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import { authenticate } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { Keypair } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
 import { decodeUTF8 } from 'tweetnacl-util';
 import bcrypt from 'bcrypt';
+import { get_token_balance } from '../utils/get_token_balances';
+import { PriceCacheService } from '../cache/PriceCache';
+import { PortfolioService } from '../services/portfolioService';
 dotenv.config();
 
 const router = express.Router();
+const portfolioService = new PortfolioService();
+const priceCache = PriceCacheService.getInstance();
 
 /**
  * Constants
@@ -175,6 +180,7 @@ router.post('/login', async (req: any, res: any) => {
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
 
+    console.log(user);
     // Return token and user data
     res.json({ 
       token, 
@@ -240,7 +246,8 @@ router.post('/login/telegram', async (req: any, res: any) => {
         wallet_address: user.wallet_address, 
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
-        reveal_wallet: user.reveal_wallet
+        reveal_wallet: user.reveal_wallet,
+        builtin_wallet: user.builtin_wallet.public_key
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -264,7 +271,8 @@ router.post('/login/telegram', async (req: any, res: any) => {
         notifications: user.notifications, 
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
-        reveal_wallet: user.reveal_wallet
+        reveal_wallet: user.reveal_wallet,
+        builtin_wallet: user.builtin_wallet.public_key
       } 
     });
   } catch (error) {
@@ -325,7 +333,8 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         twitter_id: updatedUser?.id,
         type: updatedUser?.type,
         twoFactor: updatedUser?.twoFactor.enabled,
-        reveal_wallet: updatedUser?.reveal_wallet
+        reveal_wallet: updatedUser?.reveal_wallet,
+        builtin_wallet: updatedUser?.builtin_wallet.public_key
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -343,7 +352,8 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
         notifications: updatedUser?.notifications,
         type: updatedUser?.type,
         twoFactor: updatedUser?.twoFactor.enabled,
-        reveal_wallet: updatedUser?.reveal_wallet
+        reveal_wallet: updatedUser?.reveal_wallet,
+        builtin_wallet: updatedUser?.builtin_wallet.public_key
       } 
     });
   } catch (error) {
@@ -352,4 +362,51 @@ router.post('/wallet/connect', authenticate, async (req: any, res: any) => {
   }
 });
 
+
+router.get('/builtin_wallet/details', authenticate, async (req: any, res: any) => {
+  const connection = new Connection(process.env.RPC_URL || 'https://api.devnet.solana.com');
+  const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+  try {
+      const balance = await get_token_balance(new PublicKey(user?.builtin_wallet.public_key), connection);
+      const prices = await priceCache.getPrices();
+      const solBalance = balance.sol;
+      const balanceInUSD = solBalance * prices.solana.usd;
+      const tokenDetails = await portfolioService.getTokens(user?.builtin_wallet.public_key);
+      var tokensList = []
+      for (const tokenInformation of tokenDetails) {
+          const liquiditySum = tokenInformation.pools.reduce((sum: number, pool: any) => sum + pool.liquidity.usd, 0);
+          const highestPricePool = tokenInformation.pools[0];
+          const marketCapSum = tokenInformation.pools.reduce((sum: number, pool: any) => sum + pool.marketCap.usd, 0);
+          tokensList.push({
+              name: tokenInformation.token.name,
+              symbol: tokenInformation.token.symbol,
+              balance: tokenInformation.balance,
+              address: tokenInformation.token.mint,
+              image: tokenInformation.token.image,
+              decimals: tokenInformation.token.decimals,
+              token_price: highestPricePool.price.usd,
+              usd_balance: tokenInformation.value,
+              market_cap: marketCapSum,
+              liquidity: liquiditySum,
+              volume: 0,
+              price_change: tokenInformation.events['24h'].priceChangePercentage,
+              risk: tokenInformation.risk
+          })
+      }
+      // get rid of wrapped sol from tokens list
+      tokensList = tokensList.filter((token: any) => token.address !== 'So11111111111111111111111111111111111111112');
+      res.json({
+          success: true,
+          balance: parseFloat(solBalance.toFixed(8)),
+          balanceInUSD: parseFloat(balanceInUSD.toFixed(2)),
+          tokens: tokensList,
+      });
+  } catch (error) {
+      console.error('Error validating wallet address:', error);
+      res.status(500).json({
+          success: false,
+          error: 'Failed to validate wallet address'
+      });
+  }
+});
 export default router;  

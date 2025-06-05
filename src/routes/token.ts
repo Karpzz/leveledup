@@ -57,11 +57,10 @@ router.get('/details/:token', authenticate, async (req: any, res: any) => {
     }
 });
 
-router.get('/balances/:token',  authenticate, async (req: any, res: any) => {
-    const { token } = req.params;
-    const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user.id) });
+router.get('/balances/:wallet/:token',  authenticate, async (req: any, res: any) => {
+    const { wallet, token } = req.params;
     const connection = new Connection(process.env.RPC_URL || 'https://api.devnet.solana.com');
-    const token_account = await get_token_balance(new PublicKey(user?.wallet_address), connection);
+    const token_account = await get_token_balance(new PublicKey(wallet), connection);
     const solPrice = await PriceCacheService.getInstance().getPrices();
     const tokenFound = token_account.tokens.find((t: any) => t.tokenAddress === token);
     res.json({

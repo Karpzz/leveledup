@@ -49,6 +49,10 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not connected');
     
     await this.db.collection('notifications').insertOne(notification);
+    const user = await this.db.collection('users').findOne({ _id: new ObjectId(notification.user_id) });
+    if (!user) return;
+    notification.sent = false;
+    await this.db.collection('alerts').insertOne(notification);
   }
   
   async getWallets(user_id: string): Promise<Wallet[]> {
