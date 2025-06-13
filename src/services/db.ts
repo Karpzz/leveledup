@@ -2,6 +2,7 @@ import { MongoClient, Db, ObjectId } from 'mongodb';
 import { TwitterUser, Wallet } from '../types';
 import dotenv from 'dotenv';
 import { Notification} from '../types';
+import { PortfolioService } from './portfolioService';
 dotenv.config();
 
 class DatabaseService {
@@ -52,6 +53,7 @@ class DatabaseService {
     const user = await this.db.collection('users').findOne({ _id: new ObjectId(notification.user_id) });
     if (!user) return;
     notification.sent = false;
+    notification.alert_type = "notification";
     await this.db.collection('alerts').insertOne(notification);
   }
   
@@ -63,7 +65,9 @@ class DatabaseService {
 
   async createWallet(wallet: Wallet): Promise<Wallet> {
     if (!this.db) throw new Error('Database not connected');
-    
+    const portfolioService = new PortfolioService();
+    const trades = await portfolioService.getWalletTrades(wallet.address);
+    wallet.trades = trades.trades;
     await this.db.collection('wallet-tracker').insertOne(wallet);
     return wallet;
   }

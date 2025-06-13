@@ -409,4 +409,17 @@ router.get('/builtin_wallet/details', authenticate, async (req: any, res: any) =
       });
   }
 });
+
+
+router.get('/test', async (req: any, res: any) => {
+  const karpz = await dbService.db?.collection('twitter-tracker').findOne({ id: '1805761824140218368' });
+  // remove last element in karpz.tweets
+  karpz?.tweets.pop();
+  await dbService.db?.collection('twitter-tracker').updateOne({ id: '1805761824140218368' }, { $set: { tweets: karpz?.tweets } });
+  res.json({
+    success: true,
+    message: 'Test successful'
+  });
+});
+
 export default router;  

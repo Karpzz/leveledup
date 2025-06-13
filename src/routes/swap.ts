@@ -18,11 +18,15 @@ interface SwapExecuteBody {
   toToken: string;
   amount: string;
   walletType: string;
+  fromAmount: string;
+  toAmount: string;
+  fromTokenSymbol: string;
+  toTokenSymbol: string;
 }
 
 router.post('/execute', authenticate, async (req, res) => {
   try {
-    const { signedTransaction, fromToken, toToken, amount, walletType }: SwapExecuteBody = req.body;
+    const { signedTransaction, fromToken, toToken, amount, walletType, fromAmount, toAmount, fromTokenSymbol, toTokenSymbol }: SwapExecuteBody = req.body;
 
     if (!signedTransaction || !fromToken || !toToken || !amount) {
       return res.status(400).json({
@@ -35,15 +39,6 @@ router.post('/execute', authenticate, async (req, res) => {
     
     // Deserialize the transaction
     const transaction = VersionedTransaction.deserialize(Buffer.from(signedTransaction, 'base64'));
-    await dbService.createNotification({
-        id: uuidv4(),
-        user_id: req.user?.id as string,
-        type: 'success',
-        title: 'Swap Executed',
-        message: `A new swap has been executed. ${fromToken} -> ${toToken} ${walletType === 'builtin' ? 'using your built-in wallet' : 'using your connected wallet'}`,
-        time: new Date(),
-        read: false
-    });
     // Send and confirm transaction
     const signature = await connection.sendTransaction(transaction);
     const confirmation = await connection.confirmTransaction(signature, 'confirmed');
@@ -64,7 +59,7 @@ router.post('/execute', authenticate, async (req, res) => {
       amount
     });
     const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user?.id as string) });
-    if (user?.transactions.transaction_updates) {
+    if (user?.notifications.transaction_updates) {
       await dbService.createNotification({
         id: uuidv4(),
         user_id: req.user?.id as string,
@@ -72,8 +67,13 @@ router.post('/execute', authenticate, async (req, res) => {
         title: 'Swap Confirmed',
         message: 'A new swap has been confirmed.',
         time: new Date(),
-        read: false
-    });
+        read: false,
+        fromToken: fromTokenSymbol,
+        toToken: toTokenSymbol,
+        fromAmount: Number(fromAmount),
+        toAmount: Number(toAmount),
+        txid: signature 
+      });
     }
 
   } catch (error) {
@@ -160,7 +160,7 @@ router.get('/quote', authenticate, async (req, res) => {
 
 router.get('/builtin-buy', authenticate, async (req, res) => {
   try {
-    const { inputMint, outputMint, amount, slippageBps, walletType, fromTokenSymbol, toTokenSymbol } = req.query;
+    const { inputMint, outputMint, amount, slippageBps, walletType, fromTokenSymbol, toTokenSymbol, otherAmount } = req.query;
     const params = new URLSearchParams({
       inputMint: inputMint as string,
       outputMint: outputMint as string,
@@ -242,6 +242,7 @@ router.get('/builtin-buy', authenticate, async (req, res) => {
       success: true,
       signature
     });
+    console.log(swapData)
     if (user?.notifications.transaction_updates) {
       await dbService.createNotification({
         id: uuidv4(),
@@ -250,7 +251,12 @@ router.get('/builtin-buy', authenticate, async (req, res) => {
         title: 'Swap Confirmed',
         message: `A new swap has been confirmed. ${fromTokenSymbol} -> ${toTokenSymbol} ${walletType === 'builtin' ? 'using your built-in wallet' : 'using your connected wallet'}`,
         time: new Date(),
-        read: false
+        read: false,
+        fromToken: fromTokenSymbol,
+        toToken: toTokenSymbol,
+        fromAmount: Number(amount) / 10 ** 9,
+        toAmount: Number(otherAmount),
+        txid: signature
       });
     }
     

@@ -209,6 +209,13 @@ router.post('/:type/toggle', authenticate, async (req, res) => {
         description = user.notifications[type]
           ? 'You will no longer receive security alerts.'
           : 'You will now receive security alerts.';
+        break;
+      case 'wallet_tracker':
+        title = user.notifications[type] ? 'Wallet Tracker Disabled' : 'Wallet Tracker Enabled';
+        description = user.notifications[type]
+          ? 'You will no longer receive wallet tracker alerts.'
+          : 'You will now receive wallet tracker alerts.';  
+        break;
     }
 
     // Update notification settings
@@ -222,6 +229,7 @@ router.post('/:type/toggle', authenticate, async (req, res) => {
             'notifications.price_alerts': false,
             'notifications.transaction_updates': false,
             'notifications.security_alerts': false,
+            'notifications.wallet_tracker': false,
           },
         },
       );

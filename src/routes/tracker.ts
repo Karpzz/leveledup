@@ -112,7 +112,7 @@ router.get('/wallets', authenticate, async (req: any, res: any) => {
 router.post('/wallets', authenticate, async (req: any, res: any) => {
     const { walletAddress } = req.body;
     try {
-        const wallet = await dbService.createWallet({ address: walletAddress, name: "Wallet", user_id: req.user?.id });
+        const wallet = await dbService.createWallet({ address: walletAddress, name: "Wallet", user_id: req.user?.id});
         res.json({
             success: true,
             wallet: wallet

@@ -3,6 +3,7 @@ import app from './app';
 import { dbService } from './services/db';
 import { OTCProcessor } from './services/OTC';
 import { LeaderboardCacheService } from './cache/LeaderboardCache';
+import { WalletTrackerCacheService } from './cache/WalletTrackerCache';
 // Load environment variables
 dotenv.config();
 
@@ -19,6 +20,7 @@ async function startServer() {
       setTimeout(() => {
         OTCProcessor.getInstance().startProcessing();
         // LeaderboardCacheService.getInstance().startProcess();
+        WalletTrackerCacheService.getInstance().startProcess();
       }, 5000);
     });
   } catch (err) {

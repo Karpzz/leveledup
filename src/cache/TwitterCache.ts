@@ -1,4 +1,4 @@
-import { MongoClient, Collection, Db } from 'mongodb';
+import { MongoClient, Collection, Db, ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 dotenv.config();
 // Types for Twitter API responses
@@ -162,7 +162,24 @@ export class TwitterCache {
         const nonExistingTweets = tweets.results.filter((tweet: Tweet) => !existingTweetIds.includes(tweet.tweet_id))
         if (nonExistingTweets.length > 0) {
           updatedUser.tweets = [...updatedUser.tweets, ...nonExistingTweets]
+          for (const userId of updatedUser.users) {
+            const user = await this.db.collection('users').findOne({ _id: new ObjectId(userId) })
+            if (user && user.telegram_id) {
+              const dict = {
+                user_id: userId,
+                alert_type: "twitter-tracker",
+                username: updatedUser.username,
+                tweets: nonExistingTweets,
+                created_at: new Date(),
+                sent: false
+              }
+              await this.db.collection('alerts').insertOne(dict)
+              console.log(`Alerted ${user.username} about ${updatedUser.username} new tweets`)
+            }
+          }
         }
+
+       
         
       }
       console.log(`Updated ${updatedUser.username} tweets to ${updatedUser.tweets.length}`)
@@ -191,11 +208,14 @@ export class TwitterCache {
   async run() {
     const users = await this.db.collection('twitter-tracker').find({}).toArray()
     console.log(`Updating ${users.length} users`)
+
     for (const user of users) {
+      if (user.users.length > 0) {
         await this.updateUser(user.user_id)
+      }
     }
     setInterval(async () => {
-      const users = await this.db.collection('twitter-tracker').find({}).toArray()
+      const users = await this.db.collection('twitter-tracker').find({username: 'Karpz_'}).toArray()
       for (const user of users) {
         await this.updateUser(user.user_id)
       }
