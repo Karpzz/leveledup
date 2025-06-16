@@ -124,5 +124,5 @@ export interface Wallet {
   address: string;
   name: string;
   user_id: string;
-  trades: any[];
+  [key: string]: any;
 }

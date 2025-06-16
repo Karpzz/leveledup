@@ -18,6 +18,9 @@ export class PriceCacheService {
         this.updateInterval = 60 * 60 * 1000; // 1 hour
         this.connect().then(() => this.updatePrices());
     }
+    async pricePrint(text: string) {
+        console.log(`[PRICE CACHE] ${text}`);
+    }
     static getInstance(): PriceCacheService {
         if (!PriceCacheService.instance) {
             PriceCacheService.instance = new PriceCacheService();
@@ -30,7 +33,7 @@ export class PriceCacheService {
             await this.client.connect();
             this.db = this.client.db(process.env.DB_NAME || 'leveledup');
             this.connected = true;
-            console.log('PriceCache connected to MongoDB');
+            this.pricePrint('PriceCache connected to MongoDB');
         }
     }
     async updatePrices() {
@@ -60,7 +63,7 @@ export class PriceCacheService {
 
 
         } catch (error) {
-            console.error('Error updating prices:', error);
+            this.pricePrint(`Error updating prices: ${error}`);
         }
 
         // Schedule next update

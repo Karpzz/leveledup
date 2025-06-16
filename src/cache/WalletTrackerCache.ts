@@ -24,13 +24,15 @@ export class WalletTrackerCacheService {
         }
         return WalletTrackerCacheService.instance;
     }
-
+    async walletTrackerPrint(text: string) {
+        console.log(`[WALLET TRACKER CACHE] ${text}`);
+    }
     async connect() {
         if (!this.connected) {
             await this.client.connect();
             this.db = this.client.db(process.env.DB_NAME || 'leveledup');
             this.connected = true;
-            console.log('WalletTrackerCache connected to MongoDB');
+            this.walletTrackerPrint('WalletTrackerCache connected to MongoDB');
         }
     }
 
@@ -39,16 +41,15 @@ export class WalletTrackerCacheService {
         const usersCollection = this.db.collection('users');
         const wallets = await walletsCollection.find({}).toArray();
         const portfolioService = new PortfolioService();
-        console.log(`Found ${wallets.length} wallets`);
+        this.walletTrackerPrint(`Found ${wallets.length} wallets`);
         const addresses = wallets.map(wallet => wallet.address); // get rid of duplicates
         const uniqueAddresses = [...new Set(addresses)];
         const walletTrades: Record<string, any> = {};
-        console.log(`Found ${uniqueAddresses.length} unique addresses`);
+        this.walletTrackerPrint(`Found ${uniqueAddresses.length} unique addresses`);
         for (let index = 0; index < uniqueAddresses.length; index++) {
             const address = uniqueAddresses[index];
             try {
                 const trades = await portfolioService.getWalletTrades(address);
-                console.log(`Found ${trades.trades.length} trades for address ${address} (index ${index + 1} of ${uniqueAddresses.length})`); 
                 walletTrades[address] = trades.trades;
             } catch (error) {
                 console.error(`Error updating trades for wallet ${address}: ${error}`);    
@@ -63,23 +64,27 @@ export class WalletTrackerCacheService {
                     // check to see if there are any new trades that arent in wallet.trades by trade.tx (wallet.trades can be undefined, and if it is itll just update the wallet)
                     const newTrades = tradeData.filter((trade: any) => !existingTxs.includes(trade.tx));
                     
-                    if (newTrades.length > 0) {
-                        console.log(`Found ${newTrades.length} new trades for address ${address}`);
-                        await walletsCollection.updateOne({ _id: wallet._id }, { $push: { trades: { $each: newTrades } } });
-                        // set alert with trades and user_id
-                        const user = await usersCollection.findOne({ _id: new ObjectId(wallet.user_id) });
-                        if (user && user.telegram_id && user.notifications.wallet_tracker) {
-                            const dict = {
-                                user_id: wallet.user_id,
-                                alert_type: "wallet-tracker",
-                                wallet_address: address,
-                                trades: newTrades,
-                                created_at: new Date(),
-                                sent: false
+                    try {
+                        if (newTrades.length > 0) {
+                            this.walletTrackerPrint(`Found ${newTrades.length} new trades for address ${address}`);
+                            await walletsCollection.updateOne({ _id: wallet._id }, { $push: { trades: { $each: newTrades } } });
+                            // set alert with trades and user_id
+                            const user = await usersCollection.findOne({ _id: new ObjectId(wallet.user_id) });
+                            if (user && user.telegram_id && user.notifications.wallet_tracker) {
+                                const dict = {
+                                    user_id: wallet.user_id,
+                                    alert_type: "wallet-tracker",
+                                    wallet_address: address,
+                                    trades: newTrades,
+                                    created_at: new Date(),
+                                    sent: false
+                                }
+                                await this.db.collection('alerts').insertOne(dict)
+                                this.walletTrackerPrint(`Alert set for user ${user.telegram_id} with ${newTrades.length} new trades`);
                             }
-                            await this.db.collection('alerts').insertOne(dict)
-                            console.log(`Alert set for user ${user.telegram_id} with ${newTrades.length} new trades`);
                         }
+                    } catch (error) {
+                        this.walletTrackerPrint(`Error updating trades for wallet ${address}: ${error}`);
                     }
                 }
             }

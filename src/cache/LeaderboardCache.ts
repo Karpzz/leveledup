@@ -24,6 +24,9 @@ export class LeaderboardCacheService {
         return LeaderboardCacheService.instance;
     }
 
+    async leaderboardPrint(text: string) {
+        console.log(`[LEADERBOARD CACHE] ${text}`);
+    }
     async connect() {
         if (!this.connected) {
             await this.client.connect();
@@ -45,14 +48,15 @@ export class LeaderboardCacheService {
           }
         ).toArray();
         const portfolioService = new PortfolioService();
-        console.log(`Updating ${users.length} users`);
-        for (const user of users) {
+        this.leaderboardPrint(`Updating ${users.length} users`);
+        for (let index = 0; index < users.length; index++) {
+            const user = users[index];
             try {
                 const portfolioPnl = await portfolioService.getPortfolioPNL(user.wallet_address);
                 await usersCollection.updateOne({ _id: user._id }, { $set: { portfolioPnl } });
-                console.log(`Updated portfolio PNL for user ${user.wallet_address}`);
+                this.leaderboardPrint(`Updated portfolio PNL for user ${user.wallet_address} ${index + 1} of ${users.length}`);
             } catch (error) {
-                console.error(`Error updating portfolio PNL for user ${user.wallet_address}: ${error}`);    
+                this.leaderboardPrint(`Error updating portfolio PNL for user ${user.wallet_address}: ${error}`);    
             }
         }
     }

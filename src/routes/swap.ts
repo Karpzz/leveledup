@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
-import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
+import { Connection, Keypair, LAMPORTS_PER_SOL, VersionedTransaction } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import { dbService } from '../services/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -269,4 +269,114 @@ router.get('/builtin-buy', authenticate, async (req, res) => {
   }
 });
 
+router.post('/instant_buy', authenticate, async (req, res) => {
+  try {
+    const { tokenAddress, amount } = req.body;
+    const lamports = amount * LAMPORTS_PER_SOL;
+    const params = new URLSearchParams({
+      inputMint: 'So11111111111111111111111111111111111111112',
+      outputMint: tokenAddress as string,
+      amount: lamports.toString(),
+      slippageBps: '100',
+      restrictIntermediateTokens: 'true',
+      platformFeeBps: `${req.user?.swap_fees * 100}`,
+      swapMode: 'ExactIn'
+    });
+
+    // Get quote from Jupiter
+    const quote = await fetch(
+      `https://quote-api.jup.ag/v6/quote?${params.toString()}`
+    );
+    const quoteResponse = await quote.json();
+
+    // Initialize connection and fee wallet
+    const connection = new Connection(process.env.RPC_URL || '', 'confirmed');
+    const user = await dbService.db?.collection('users').findOne({ _id: new ObjectId(req.user?.id as string) });
+    const feeWallet = Keypair.fromSecretKey(
+      bs58.decode(process.env.FEE_PRIVATE_KEY || '')
+    );
+    const builtinWallet = Keypair.fromSecretKey(
+      bs58.decode(user?.builtin_wallet.private_key || '')
+    );
+    const wallet_address: string = builtinWallet.publicKey.toBase58();
+    const mintPubkey = new PublicKey(
+      tokenAddress as string
+    );
+    // Get or create ATA for fee account
+    const feeTokenAccount = await getOrCreateAssociatedTokenAccount(
+      connection,
+      feeWallet,
+      mintPubkey, // The token being received
+      new PublicKey(process.env.FEE_PUBLIC_KEY || ''),
+    );
+
+    const swapBody = JSON.stringify({
+      // Send the raw quote response
+      quoteResponse,
+      // Add user and fee information
+      userPublicKey: wallet_address,
+      feeAccount: feeTokenAccount.address.toBase58()
+    });
+
+    // Get swap transaction data
+    const swapData = await (
+      await fetch('https://lite-api.jup.ag/swap/v1/swap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: swapBody
+      })
+    ).json();
+    // Deserialize the transaction
+    const transaction = VersionedTransaction.deserialize(
+      Buffer.from(swapData.swapTransaction, 'base64')
+    );
+
+    // Sign transaction with the builtin wallet
+    transaction.sign([builtinWallet]);
+
+    // Send and confirm transaction
+    const signature = await connection.sendTransaction(transaction);
+    
+    // Wait for confirmation
+    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+    if (confirmation.value.err) {
+      return res.status(400).json({
+        success: false,
+        message: 'Transaction failed',
+        error: confirmation.value.err
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      signature,
+      quoteResponse
+    });
+    if (user?.notifications.transaction_updates) {
+      await dbService.createNotification({
+        id: uuidv4(),
+        user_id: req.user?.id as string,
+        type: 'success',
+        title: 'Instant Buy Confirmed',
+        message: `A new instant buy has been confirmed. ${tokenAddress} -> ${tokenAddress} using your built-in wallet`,
+        time: new Date(),
+        read: false,
+        fromToken: 'SOL',
+        toToken: tokenAddress,
+        fromAmount: Number(amount) / 10 ** 9,
+        toAmount: Number(amount) / 10 ** 9,
+        txid: signature
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in swap quote:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to execute swap'
+    });
+  }
+});
 export default router;

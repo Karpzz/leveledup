@@ -4,6 +4,7 @@ import { dbService } from './services/db';
 import { OTCProcessor } from './services/OTC';
 import { LeaderboardCacheService } from './cache/LeaderboardCache';
 import { WalletTrackerCacheService } from './cache/WalletTrackerCache';
+import { SniperCache } from './cache/SniperCache';
 // Load environment variables
 dotenv.config();
 
@@ -17,11 +18,20 @@ async function startServer() {
     // Start the server
     app.listen(PORT, () => {
       console.log(`Server is running on ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
-      setTimeout(() => {
-        OTCProcessor.getInstance().startProcessing();
-        // LeaderboardCacheService.getInstance().startProcess();
-        WalletTrackerCacheService.getInstance().startProcess();
-      }, 5000);
+      const sniperCache = new SniperCache();  
+      sniperCache.start();
+      if (process.env.NODE_ENV !== 'development') {
+        setTimeout(() => {
+          
+          OTCProcessor.getInstance().startProcessing();
+          LeaderboardCacheService.getInstance().startProcess();
+          WalletTrackerCacheService.getInstance().startProcess();
+        }, 5000);
+      }
+
+      else {
+          console.log('Development mode');
+      }
     });
   } catch (err) {
     console.error('Failed to start server:', err);

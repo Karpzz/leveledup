@@ -69,15 +69,19 @@ export class TwitterCache {
   private readonly rapidApiHost: string;
   private db!: Db;
   constructor() {
-    this.client = new MongoClient(process.env.MONGODB_URI || '');
-    this.rapidApiKey = process.env.RAPID_API_KEY || '';
-    this.rapidApiHost = 'twitter154.p.rapidapi.com';
-    this.client.connect().then(() => {
-      this.db = this.client.db('leveledup')
-      console.log('Twitter Cache Connected to MongoDB')
-      // this.run()
+      this.client = new MongoClient(process.env.MONGODB_URI || '');
+      this.rapidApiKey = process.env.RAPID_API_KEY || '';
+      this.rapidApiHost = 'twitter154.p.rapidapi.com';
+      this.client.connect().then(() => {
+        this.db = this.client.db('leveledup')
+        console.log('Twitter Cache Connected to MongoDB')
+        if (process.env.NODE_ENV !== 'development') {
+          this.run()
+        } else {
+          console.log('[TWITTER CACHE] Development mode');
+        }
     })
-  }
+    }
 
   getHeaders() {
     return {
@@ -131,8 +135,11 @@ export class TwitterCache {
     return tweetsData;
   }
 
+  async twitterPrint(text: string) {
+    console.log(`[TWITTER CACHE] ${text}`);
+  }
   
-  async updateUser(userId: string, user_id_to_add: string | null = null) {
+  async updateUser(userId: string, user_id_to_add: string | null = null, index: number = 0)  {
     try {
       const user = await this.db.collection('twitter-tracker').findOne({ user_id: userId })
       if (!user) {
@@ -174,7 +181,7 @@ export class TwitterCache {
                 sent: false
               }
               await this.db.collection('alerts').insertOne(dict)
-              console.log(`Alerted ${user.username} about ${updatedUser.username} new tweets`)
+              this.twitterPrint(`Alerted ${user.username} about ${updatedUser.username} new tweets (${nonExistingTweets.length}) ${index + 1} of ${updatedUser.users.length}`)
             }
           }
         }
@@ -182,10 +189,10 @@ export class TwitterCache {
        
         
       }
-      console.log(`Updated ${updatedUser.username} tweets to ${updatedUser.tweets.length}`)
+      this.twitterPrint(`Updated ${updatedUser.username} tweets to ${updatedUser.tweets.length}`)
       await this.db.collection('twitter-tracker').updateOne({ user_id: userId }, { $set: { tweets: updatedUser.tweets } })
     } catch (error) {
-      console.error(`Error updating user ${userId}: ${error}`)
+      this.twitterPrint(`Error updating user ${userId}: ${error}`)
     }
   }
 
@@ -216,8 +223,9 @@ export class TwitterCache {
     }
     setInterval(async () => {
       const users = await this.db.collection('twitter-tracker').find({username: 'Karpz_'}).toArray()
-      for (const user of users) {
-        await this.updateUser(user.user_id)
+      for (let index = 0; index < users.length; index++) {
+        const user = users[index];
+        await this.updateUser(user.user_id, null, index)
       }
     }, 1000 * 60 * 5)  // 5 minutes
   }

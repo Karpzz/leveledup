@@ -17,8 +17,12 @@ export class NewsCacheService {
     this.client = new MongoClient(uri);
     this.updateInterval = 60 * 60 * 1000; // 1 hour
     this.connect().then(() => {
-      this.updateWhaleTransactions();
-      this.updateNews();
+      if (process.env.NODE_ENV !== 'development') {
+        this.updateWhaleTransactions();
+        this.updateNews();
+      } else {
+        console.log('[NEWS CACHE] Development mode');
+      }
     });
   }
 
@@ -37,6 +41,10 @@ export class NewsCacheService {
       console.log('NewsCache connected to MongoDB');
     }
   }
+  
+  async newsPrint(text: string) {
+    console.log(`[NEWS CACHE] ${text}`);
+  }
 
   async updateWhaleTransactions() {
     axios.get('https://crypto-news51.p.rapidapi.com/api/v1/crypto/transactions', {
@@ -52,10 +60,10 @@ export class NewsCacheService {
         { $set: { transactions: response.data } },
         { upsert: true }
       );
-      console.log('Whale transactions updated in cache');
+      this.newsPrint('Whale transactions updated in cache');
     })
     .catch(error => {
-      console.error('Error fetching whale transactions:', error);
+      this.newsPrint(`Error fetching whale transactions: ${error}`);
     });
     setTimeout(() => this.updateWhaleTransactions(), this.updateInterval);
   }
@@ -123,9 +131,9 @@ export class NewsCacheService {
         { upsert: true }
       );
 
-      console.log('News updated in cache');
+      this.newsPrint('News updated in cache');
     } catch (error) {
-      console.error('Error updating news:', error);
+      this.newsPrint(`Error updating news: ${error}`);
     }
 
     // Schedule next update

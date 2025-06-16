@@ -81,6 +81,10 @@ router.post('/register', async (req: any, res: any) => {
       builtin_wallet: {
         public_key: builtin_wallet.publicKey.toBase58(),
         private_key: bs58.encode(builtin_wallet.secretKey)
+      },
+      sniper: {
+        enabled: false,
+        amount: 0.001
       }
     });
 
@@ -97,7 +101,8 @@ router.post('/register', async (req: any, res: any) => {
         type: newUser?.type, 
         twoFactor: newUser?.twoFactor.enabled,
         reveal_wallet: newUser?.reveal_wallet,
-        builtin_wallet: newUser?.builtin_wallet.public_key
+        builtin_wallet: newUser?.builtin_wallet.public_key,
+        sniper: newUser?.sniper
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -116,7 +121,8 @@ router.post('/register', async (req: any, res: any) => {
         type: newUser?.type, 
         twoFactor: newUser?.twoFactor.enabled,
         reveal_wallet: newUser?.reveal_wallet,
-        builtin_wallet: newUser?.builtin_wallet.public_key
+        builtin_wallet: newUser?.builtin_wallet.public_key,
+        sniper: newUser?.sniper
       } 
     });
   } catch (error) {
@@ -175,7 +181,8 @@ router.post('/login', async (req: any, res: any) => {
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
         reveal_wallet: user.reveal_wallet,
-        builtin_wallet: user.builtin_wallet.public_key
+        builtin_wallet: user.builtin_wallet.public_key,
+        sniper: user.sniper
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -195,7 +202,8 @@ router.post('/login', async (req: any, res: any) => {
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
         reveal_wallet: user.reveal_wallet,
-        builtin_wallet: user.builtin_wallet.public_key
+        builtin_wallet: user.builtin_wallet.public_key,
+        sniper: user.sniper
       } 
     });
   } catch (error) {
@@ -247,7 +255,8 @@ router.post('/login/telegram', async (req: any, res: any) => {
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
         reveal_wallet: user.reveal_wallet,
-        builtin_wallet: user.builtin_wallet.public_key
+        builtin_wallet: user.builtin_wallet.public_key,
+        sniper: user.sniper
       }, 
       process.env.JWT_SECRET || DEFAULT_JWT_SECRET
     );
@@ -272,7 +281,8 @@ router.post('/login/telegram', async (req: any, res: any) => {
         type: user.type, 
         twoFactor: user.twoFactor.enabled,
         reveal_wallet: user.reveal_wallet,
-        builtin_wallet: user.builtin_wallet.public_key
+        builtin_wallet: user.builtin_wallet.public_key,
+        sniper: user.sniper
       } 
     });
   } catch (error) {
